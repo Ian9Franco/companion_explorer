@@ -25,14 +25,17 @@ export type FolderEntry = {
 
 export type MediaKind = "image" | "video" | "audio";
 
-export type MediaFileEntry = {
+export type MediaItem = {
+  id?: number;
   name: string;
   path: string;
-  relativePath: string;
+  folder?: string;
+  relativePath?: string;
   extension: string;
   kind: MediaKind;
   sizeBytes: number;
   modifiedUtc: string;
+  libraryId?: number | null;
 };
 
 export type FolderSummary = {
@@ -49,125 +52,184 @@ export type FolderListing = {
   parentPath: string | null;
   breadcrumbs: BreadcrumbEntry[];
   folders: FolderEntry[];
-  files: MediaFileEntry[];
+  files: MediaItem[];
   summary: FolderSummary;
 };
 
-export type FolderQueryOptions = {
+export type LibraryStatus = "idle" | "queued" | "scanning" | "missing" | "error";
+
+export type LibraryInfo = {
+  id: number;
   path: string;
-  kind?: "all" | MediaKind;
-  search?: string;
-  sort?: "date" | "name" | "size" | "type";
-  desc?: boolean;
-  recursive?: boolean;
-  signal?: AbortSignal;
+  name: string;
+  addedUtc: string;
+  lastScanUtc: string | null;
+  fileCount: number;
+  totalBytes: number;
+  status: LibraryStatus;
+  scannedCount: number;
+  error: string | null;
 };
+
+export type CollectionInfo = {
+  id: number;
+  name: string;
+  itemCount: number;
+  coverPath: string | null;
+  createdUtc: string;
+  updatedUtc: string;
+};
+
+export type CatalogPage = {
+  total: number;
+  offset: number;
+  items: MediaItem[];
+};
+
+export type TimelineBucket = {
+  year: number;
+  month: number;
+  count: number;
+};
+
+export type CatalogSummary = {
+  totalCount: number;
+  totalBytes: number;
+  kinds: { image: number; video: number; audio: number };
+  extensions: { extension: string; count: number }[];
+  timeline: TimelineBucket[];
+};
+
+export type SortKey = "date" | "name" | "size" | "type";
+
+export type DateRange = {
+  from: number;
+  to: number;
+  label: string;
+};
+
+export type Filters = {
+  kind: "all" | MediaKind;
+  extensions: string[];
+  search: string;
+  range: DateRange | null;
+  sort: SortKey;
+  desc: boolean;
+};
+
+export type View =
+  | { type: "all" }
+  | { type: "library"; id: number }
+  | { type: "collection"; id: number }
+  | { type: "folder"; path: string };
 
 export const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://127.0.0.1:5080";
 
-export async function fetchBrand(signal?: AbortSignal): Promise<Brand> {
-  const response = await fetch(`${API_URL}/brand`, { signal });
-  if (!response.ok) {
-    throw new Error(`HTTP ${response.status}`);
+export class ApiError extends Error {
+  constructor(message: string, readonly status: number) {
+    super(message);
   }
-  return (await response.json()) as Brand;
 }
 
-export async function fetchRoots(signal?: AbortSignal): Promise<RootEntry[]> {
-  const response = await fetch(`${API_URL}/roots`, { signal });
-  if (!response.ok) {
-    throw new Error(`HTTP ${response.status}`);
-  }
-  const data = (await response.json()) as { roots: RootEntry[] };
-  return data.roots ?? [];
-}
-
-export async function fetchFolderListing(options: FolderQueryOptions): Promise<FolderListing> {
-  const params = new URLSearchParams();
-  params.set("path", options.path);
-  if (options.kind && options.kind !== "all") {
-    params.set("kind", options.kind);
-  }
-  if (options.search && options.search.trim().length > 0) {
-    params.set("search", options.search.trim());
-  }
-  if (options.sort) {
-    params.set("sort", options.sort);
-  }
-  if (typeof options.desc === "boolean") {
-    params.set("desc", String(options.desc));
-  }
-  if (options.recursive) {
-    params.set("recursive", "true");
-  }
-
-  const response = await fetch(`${API_URL}/folders?${params.toString()}`, {
-    signal: options.signal
+async function request<T>(path: string, init?: RequestInit): Promise<T> {
+  const response = await fetch(`${API_URL}${path}`, {
+    ...init,
+    headers: init?.body ? { "Content-Type": "application/json", ...init.headers } : init?.headers
   });
 
   if (!response.ok) {
-    let message = `No se pudo abrir la carpeta (${response.status}).`;
+    let message = `El núcleo respondió ${response.status}.`;
     try {
       const payload = (await response.json()) as { error?: string };
-      if (payload?.error) {
-        message = payload.error;
-      }
+      if (payload?.error) message = payload.error;
     } catch {
-      // Ignore parse error
+      // The body was not JSON; keep the status message.
     }
-    throw new Error(message);
+    throw new ApiError(message, response.status);
   }
 
-  return (await response.json()) as FolderListing;
+  if (response.status === 204) return undefined as T;
+  return (await response.json()) as T;
 }
 
-export function getThumbUrl(filePath: string, size = 320): string {
-  const params = new URLSearchParams({
-    path: filePath,
-    size: String(size)
-  });
-  return `${API_URL}/thumb?${params.toString()}`;
-}
+const json = (body: unknown): RequestInit => ({ body: JSON.stringify(body) });
 
-export function getFileUrl(filePath: string): string {
-  const params = new URLSearchParams({
-    path: filePath
-  });
-  return `${API_URL}/file?${params.toString()}`;
-}
+export const api = {
+  brand: (signal?: AbortSignal) => request<Brand>("/brand", { signal }),
 
-export function formatBytes(bytes: number): string {
-  if (!Number.isFinite(bytes) || bytes <= 0) return "0 B";
-  const units = ["B", "KB", "MB", "GB", "TB"];
-  const index = Math.min(units.length - 1, Math.floor(Math.log(bytes) / Math.log(1024)));
-  const value = bytes / Math.pow(1024, index);
-  return `${value >= 10 || index === 0 ? value.toFixed(0) : value.toFixed(1)} ${units[index]}`;
-}
+  roots: async (signal?: AbortSignal) =>
+    (await request<{ roots: RootEntry[] }>("/roots", { signal })).roots ?? [],
 
-export function formatShortDate(iso: string): string {
-  try {
-    const date = new Date(iso);
-    return new Intl.DateTimeFormat("es-AR", {
-      day: "2-digit",
-      month: "short",
-      year: "numeric"
-    }).format(date);
-  } catch {
-    return iso;
+  folder: (path: string, filters: Pick<Filters, "kind" | "search" | "sort" | "desc">, recursive: boolean, signal?: AbortSignal) => {
+    const params = new URLSearchParams({ path, sort: filters.sort, desc: String(filters.desc) });
+    if (filters.kind !== "all") params.set("kind", filters.kind);
+    if (filters.search.trim()) params.set("search", filters.search.trim());
+    if (recursive) params.set("recursive", "true");
+    return request<FolderListing>(`/folders?${params}`, { signal });
+  },
+
+  libraries: (signal?: AbortSignal) =>
+    request<{ libraries: LibraryInfo[]; scanning: boolean }>("/libraries", { signal }),
+
+  addLibrary: (path: string) =>
+    request<{ library: LibraryInfo; absorbedLibraryIds: number[] }>("/libraries", { method: "POST", ...json({ path }) }),
+
+  rescanLibrary: (id: number) => request<LibraryInfo>(`/libraries/${id}/scan`, { method: "POST" }),
+
+  removeLibrary: (id: number) => request<void>(`/libraries/${id}`, { method: "DELETE" }),
+
+  catalogPage: (params: URLSearchParams, offset: number, limit: number, signal?: AbortSignal) => {
+    const query = new URLSearchParams(params);
+    query.set("offset", String(offset));
+    query.set("limit", String(limit));
+    return request<CatalogPage>(`/catalog/files?${query}`, { signal });
+  },
+
+  catalogSummary: (params: URLSearchParams, signal?: AbortSignal) =>
+    request<CatalogSummary>(`/catalog/summary?${params}`, { signal }),
+
+  collections: async (signal?: AbortSignal) =>
+    (await request<{ collections: CollectionInfo[] }>("/collections", { signal })).collections ?? [],
+
+  createCollection: (name: string) =>
+    request<CollectionInfo>("/collections", { method: "POST", ...json({ name }) }),
+
+  renameCollection: (id: number, name: string) =>
+    request<CollectionInfo>(`/collections/${id}`, { method: "PATCH", ...json({ name }) }),
+
+  deleteCollection: (id: number) => request<void>(`/collections/${id}`, { method: "DELETE" }),
+
+  addToCollection: (id: number, paths: string[]) =>
+    request<{ added: number; collection: CollectionInfo }>(`/collections/${id}/items`, { method: "POST", ...json({ paths }) }),
+
+  removeFromCollection: (id: number, paths: string[]) =>
+    request<{ removed: number; collection: CollectionInfo }>(`/collections/${id}/items/remove`, { method: "POST", ...json({ paths }) })
+};
+
+export function catalogParams(view: View, filters: Filters): URLSearchParams {
+  const params = new URLSearchParams();
+  if (view.type === "library") params.set("library", String(view.id));
+  if (view.type === "collection") params.set("collection", String(view.id));
+  if (filters.kind !== "all") params.set("kind", filters.kind);
+  if (filters.extensions.length > 0) params.set("ext", filters.extensions.join(","));
+  if (filters.search.trim()) params.set("search", filters.search.trim());
+  if (filters.range) {
+    params.set("from", String(filters.range.from));
+    params.set("to", String(filters.range.to));
   }
+  params.set("sort", filters.sort);
+  params.set("desc", String(filters.desc));
+  return params;
 }
 
-export function formatFullDateTime(iso: string): string {
-  try {
-    const date = new Date(iso);
-    return new Intl.DateTimeFormat("es-AR", {
-      day: "2-digit",
-      month: "short",
-      year: "numeric",
-      hour: "2-digit",
-      minute: "2-digit"
-    }).format(date);
-  } catch {
-    return iso;
-  }
+export function thumbUrl(path: string, size = 320): string {
+  return `${API_URL}/thumb?${new URLSearchParams({ path, size: String(size) })}`;
+}
+
+export function fileUrl(path: string): string {
+  return `${API_URL}/file?${new URLSearchParams({ path })}`;
+}
+
+export function brandLogoUrl(brand: Brand | null): string | null {
+  return brand ? `${API_URL}${brand.logoUrl}` : null;
 }
