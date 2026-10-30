@@ -59,10 +59,12 @@ Esa división es la que Smart Scan no tenía: la interfaz y Pillow compartían u
 | GET | `/health` | El núcleo está en marcha |
 | GET | `/brand` | Nombre, título de ventana, texto de preload y URL del logo |
 | GET | `/brand/logo` | SVG de la marca activa |
+| GET | `/roots` | Ubicaciones del sistema y unidades listas para explorar |
+| GET | `/folders` | Subcarpetas, archivos multimedia (`path`, `kind`, `search`, `sort`, `desc`, `recursive`) y resumen |
+| GET | `/thumb` | Miniatura achicada (`IShellItemImageFactory` en Windows + caché Zero-Touch en `LocalApplicationData`) |
+| GET | `/file` | Archivo original a tamaño real con soporte de rangos HTTP (`206 Partial Content`) para video y audio |
 
 El API escucha en `http://127.0.0.1:5080`. Next lee `NEXT_PUBLIC_API_URL`.
-
-Todavía no existen `/folders`, `/thumb` ni `/file`. Esas rutas aparecen en la fase 1, del lado de C#, y la grilla de Next las consume.
 
 ## Cómo se corre hoy
 
@@ -78,4 +80,4 @@ npm install
 npm run dev
 ```
 
-La ventana de WebView2 (`src/CompanionExplorer.Host`) es el paso siguiente en una máquina Windows. En desarrollo, el navegador en `http://localhost:3000` alcanza para ver el preload.
+La ventana de WebView2 (`src/CompanionExplorer.Host`) carga `http://localhost:3000` en desarrollo o la exportación estática (`https://companion.local`) en release, sincroniza el título de la marca activa y abre el selector nativo de carpetas de Windows cuando recibe `pick-folder`.
