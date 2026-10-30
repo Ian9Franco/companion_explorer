@@ -21,14 +21,8 @@ public sealed class ThumbnailService : IThumbnailSource
 
     public string CacheDirectory => _cacheDirectory;
 
-    public static string GetDefaultCacheDirectory()
-    {
-        var baseDir = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
-        if (string.IsNullOrWhiteSpace(baseDir))
-            baseDir = Path.GetTempPath();
-
-        return Path.Combine(baseDir, "CompanionExplorer", "cache", "thumbs");
-    }
+    public static string GetDefaultCacheDirectory() =>
+        Path.Combine(AppDataPaths.Resolve(), "cache", "thumbs");
 
     public async Task<ThumbnailResult?> GetThumbnailAsync(
         string filePath,
