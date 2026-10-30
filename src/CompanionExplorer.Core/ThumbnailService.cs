@@ -4,6 +4,12 @@ using SkiaSharp;
 
 namespace CompanionExplorer.Core;
 
+/// <summary>
+/// Miniatura achicada, cacheada por ruta, fecha y tamaño.
+/// En Windows la saca del shell (<see cref="WindowsShellThumbnailExtractor"/>).
+/// En el resto, SkiaSharp alcanza para fotos; un video sin extractor devuelve null
+/// y el API responde 204. El visor no usa esto: pide el archivo original.
+/// </summary>
 public sealed class ThumbnailService : IThumbnailSource
 {
     private readonly string _cacheDirectory;

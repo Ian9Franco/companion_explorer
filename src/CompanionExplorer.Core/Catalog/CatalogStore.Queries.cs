@@ -140,6 +140,12 @@ public sealed partial class CatalogStore
         ModifiedUtc: DateTimeOffset.FromUnixTimeMilliseconds(reader.GetInt64(7)),
         LibraryId: reader.IsDBNull(8) ? null : reader.GetInt64(8));
 
+    /// <summary>
+    /// Un mismo filtro alimenta la grilla y los controles de al lado.
+    /// Cada control pide el resumen sin su propio criterio, para seguir mostrando
+    /// las alternativas: el tipo ignora tipo y extensión, la extensión ignora solo
+    /// la extensión, y la línea de tiempo ignora el rango de fechas.
+    /// </summary>
     private static WhereClause BuildWhere(
         CatalogFilter filter,
         bool includeKind,

@@ -1,5 +1,13 @@
 "use client";
 
+/**
+ * El visor no anima el layout. Mide la tarjeta y la foto, y pasa de una
+ * a la otra con un transform y un recorte. Al cerrar, la salida lee
+ * `exitOrigin`: la tarjeta se busca antes de desmontar, porque durante
+ * la animación de salida este árbol ya no está. Si la tarjeta no se ve,
+ * o la foto está con zoom, cierra con un fade.
+ */
+
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion, Variants } from "motion/react";
 import {

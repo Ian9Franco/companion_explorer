@@ -7,7 +7,10 @@ namespace CompanionExplorer.Api;
 public sealed record ScanSnapshot(string Status, int Scanned, string? Error);
 
 /// <summary>
-/// Scans one library at a time so two walks never compete for the same disk.
+/// Escanea de a una biblioteca, para que dos recorridos no peleen el mismo disco.
+/// Si llega un rescan mientras esa biblioteca ya se está escaneando, se anota y
+/// se corre al terminar. Cancelar corta el recorrido en curso y no borra filas:
+/// el scanner solo poda lo que no vio cuando el recorrido termina entero.
 /// </summary>
 public sealed class CatalogScanWorker(
     CatalogStore store,

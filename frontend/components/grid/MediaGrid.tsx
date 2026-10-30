@@ -1,5 +1,12 @@
 "use client";
 
+/**
+ * Solo se montan las filas visibles, más unas de más arriba y abajo.
+ * La entrada en cascada dura un momento después de cambiar el resultado;
+ * scrollear no la vuelve a disparar. Con el visor abierto, la grilla
+ * sigue al ítem para que el cierre pueda volver a esa tarjeta.
+ */
+
 import { memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { Check, Film, Image as ImageIcon, Music } from "lucide-react";

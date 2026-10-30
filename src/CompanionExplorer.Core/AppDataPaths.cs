@@ -1,5 +1,9 @@
 namespace CompanionExplorer.Core;
 
+/// <summary>
+/// Dónde guarda la app lo suyo: <c>catalog.db</c> y <c>cache/thumbs</c>.
+/// Primero <c>COMPANION_DATA_DIR</c>, si no <c>%LocalAppData%/CompanionExplorer</c>.
+/// </summary>
 public static class AppDataPaths
 {
     public static string Resolve(string? overrideDirectory = null)

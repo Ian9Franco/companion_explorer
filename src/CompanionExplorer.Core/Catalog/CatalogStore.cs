@@ -2,6 +2,12 @@ using Microsoft.Data.Sqlite;
 
 namespace CompanionExplorer.Core.Catalog;
 
+/// <summary>
+/// Catálogo SQLite. Vive en el directorio de datos de la app, nunca en una carpeta del usuario.
+/// Una fila de <c>files</c> pertenece a una biblioteca, o a ninguna si solo la sostiene una
+/// colección (<c>library_id</c> nulo). La vista "todo" deja afuera esas filas sueltas.
+/// El esquema avanza con <c>PRAGMA user_version</c>. Hoy hay una sola versión.
+/// </summary>
 public sealed partial class CatalogStore
 {
     private const int SchemaVersion = 1;

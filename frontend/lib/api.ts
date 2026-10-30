@@ -1,3 +1,11 @@
+/**
+ * Contrato HTTP con el núcleo. El front no lee el disco: la lista, la
+ * miniatura y el archivo salen de acá.
+ *
+ * `catalogParams` es el filtro compartido por la página de archivos y el
+ * resumen. El resumen le saca el orden, que no cambia los conteos.
+ */
+
 export type Brand = {
   id: string;
   productName: string;

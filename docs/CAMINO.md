@@ -30,14 +30,40 @@ Ventana WebView2
          |
          |  HTTP en 127.0.0.1
          v
-CompanionExplorer.Api          contrato con el front
-CompanionExplorer.Core         marca, y después catálogo y miniaturas
+CompanionExplorer.Api          contrato con el front, y el escaneo en segundo plano
+CompanionExplorer.Core         marca, catálogo SQLite, lectura de carpetas, miniaturas
 CompanionExplorer.Host         ventana Windows. Solo compila en Windows
 ```
 
-El front no recorre el disco y no genera miniaturas. Le pide al API la lista, la miniatura y el archivo. Las miniaturas de la grilla tienen que salir del caché de Windows (`IShellItemImageFactory`), ya achicadas. El visor pide el archivo original aparte, para que una miniatura lenta no tape la foto.
+El front no recorre el disco y no genera miniaturas. Le pide al API la lista, la miniatura y el archivo. Las miniaturas de la grilla salen del caché de Windows (`IShellItemImageFactory`), ya achicadas. El visor pide el archivo original aparte, para que una miniatura lenta no tape la foto.
 
 Esa división es la que Smart Scan no tenía: la interfaz y Pillow compartían un servidor de un solo hilo, y la foto a tamaño real quedaba atrás de la grilla.
+
+## Dónde está el código
+
+El estado de la pantalla vive en `frontend/app/page.tsx`. Los componentes dibujan. La grilla y el visor no saben si los archivos vienen del catálogo o de una carpeta: leen un `MediaSource` (`frontend/lib/sources.ts`), y el HTTP está en `frontend/lib/api.ts`.
+
+| Pieza | Qué decide |
+|---|---|
+| `CatalogStore` | Esquema, bibliotecas, consultas y colecciones. El filtro de la grilla y el de los conteos no son el mismo: cada control se pide sin su propio criterio, para seguir mostrando las otras opciones |
+| `CatalogScanner` | Un recorrido marca las filas con un `scan_id` y al terminar borra las que no vio. Si se cancela, no borra nada |
+| `CatalogScanWorker` | Una biblioteca a la vez. Un rescan en medio espera a que termine el actual |
+| `FolderExplorer` | Una carpeta, en el momento, sin catalogarla |
+| `ThumbnailService` | Miniatura cacheada. El visor no la usa |
+| `MediaGrid` | Solo las filas visibles. La entrada en cascada corre una vez por resultado |
+| `MediaViewer` | Abre desde la tarjeta con un transform y un recorte, y cierra hacia ella si sigue en pantalla |
+
+Tres cosas que no se ven en la pantalla y cambian el resultado:
+
+- "Todo" no incluye archivos que solo están en una colección.
+- La línea de tiempo ignora el filtro de fecha. Si no, al elegir un mes desaparecerían los demás.
+- Nada de esto escribe en las carpetas del usuario. `catalog.db` y `cache/thumbs` van al directorio de datos.
+
+## Fases
+
+1. **Explorador, sin IA.** Hecho. Elegir carpeta, grilla virtualizada, miniatura del sistema, clic y la foto a tamaño real.
+2. **Catálogo.** Hecho. SQLite con ruta, tamaño, fecha y tipo. Filtros, colecciones y línea de tiempo sobre esa tabla.
+3. **Búsqueda visual.** Todavía no. Una interfaz `IEmbedder`: entra una imagen o un texto, sale un vector. La implementación puede ser ONNX con DirectML, o un proceso Python si SigLIP todavía no exporta. El índice guarda el id del modelo junto al vector. Si el modelo cambia, no se escribe encima de un índice viejo. Un video puede tener varios frames. La búsqueda muestra el archivo una sola vez.
 
 ## Qué no entra desde Smart Scan
 
@@ -45,12 +71,6 @@ Esa división es la que Smart Scan no tenía: la interfaz y Pillow compartían u
 - PyTorch, Transformers y el par `vectores.npy` / `datos.json`
 - Audio y documentos que respondían éxito sin indexar
 - Dos programas distintos para Ian y Fanger
-
-## Fases
-
-1. **Explorador, sin IA.** Elegir carpeta, grilla virtualizada, miniatura del sistema, clic y la foto a tamaño real. Miles de archivos sin cargar todo en memoria. Hasta que esto no se sienta mejor que el Explorador, no hay modelo.
-2. **Catálogo.** SQLite con ruta, tamaño, fecha y tipo. Filtros, colecciones y línea de tiempo sobre esa tabla.
-3. **Búsqueda visual.** Una interfaz `IEmbedder`: entra una imagen o un texto, sale un vector. La implementación puede ser ONNX con DirectML, o un proceso Python si SigLIP todavía no exporta. El índice guarda el id del modelo junto al vector. Si el modelo cambia, no se escribe encima de un índice viejo. Un video puede tener varios frames. La búsqueda muestra el archivo una sola vez.
 
 ## Contrato que el front ya puede usar
 

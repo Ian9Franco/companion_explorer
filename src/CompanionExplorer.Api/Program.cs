@@ -23,6 +23,7 @@ var brands = BrandStore.Load(AppContext.BaseDirectory, brandId);
 builder.Services.AddSingleton(brands);
 builder.Services.AddSingleton<FolderExplorer>();
 
+// Un solo directorio de datos, fuera de las carpetas del usuario: catalog.db y cache/thumbs.
 var dataDirectory = AppDataPaths.Resolve(builder.Configuration["COMPANION_DATA_DIR"]);
 builder.Services.AddSingleton<IThumbnailSource>(_ =>
     new ThumbnailService(Path.Combine(dataDirectory, "cache", "thumbs")));

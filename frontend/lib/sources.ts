@@ -11,9 +11,15 @@ import {
 } from "./api";
 
 /**
- * What the grid and the viewer read from. The catalog serves it page by page;
- * a browsed folder serves it from one listing. Both keep showing the previous
- * result while the next one loads, so a filter change never flashes empty.
+ * Lo que leen la grilla y el visor.
+ *
+ * El catálogo llega de a páginas de 240 y se guarda en un ref: pedir la
+ * página siguiente no rearma la lista. Una carpeta llega en un solo listado
+ * y el filtro de extensión y de fecha se aplica en el cliente, porque ese
+ * endpoint no los tiene.
+ *
+ * En los dos casos el resultado anterior sigue en pantalla hasta que llega
+ * el nuevo, así un cambio de filtro no parpadea vacío.
  */
 export type MediaSource = {
   key: string;

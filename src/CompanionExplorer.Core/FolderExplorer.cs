@@ -46,6 +46,11 @@ public sealed record FolderListing(
     IReadOnlyList<MediaFileEntry> Files,
     FolderSummary Summary);
 
+/// <summary>
+/// Lee una carpeta en el momento, sin pasar por el catálogo.
+/// Sirve para explorar antes de catalogar, y para el selector de carpetas.
+/// Lista un nivel. El aplanado, si se pide, corta en <see cref="MaxEnumeratedFiles"/>.
+/// </summary>
 public sealed class FolderExplorer
 {
     public const int MaxEnumeratedFiles = 25_000;

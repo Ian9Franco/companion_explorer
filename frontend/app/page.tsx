@@ -1,5 +1,19 @@
 "use client";
 
+/**
+ * Pantalla del explorador. Acá está el estado; los componentes dibujan.
+ *
+ * Hay tres pantallas: el splash mientras no sabemos si el núcleo responde,
+ * la bienvenida cuando no hay bibliotecas ni una carpeta abierta, y el shell.
+ *
+ * Se recuerda entre visitas la vista, los recientes, la densidad, el sidebar,
+ * la línea de tiempo y el orden. Tipo, fecha y búsqueda no: cambian seguido
+ * y no tienen que sobrevivir un reinicio.
+ *
+ * `refreshToken` vuelve a pedir lo que ya se está viendo (un escaneo que
+ * avanzó, un archivo que entró a una colección) sin vaciar la grilla.
+ */
+
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, MotionConfig, motion } from "motion/react";
 import { FolderSearch, Layers, RefreshCw, SearchX, Sparkles, TriangleAlert } from "lucide-react";
@@ -102,7 +116,7 @@ export default function ExplorerPage() {
     [kind, extensions, search, range, sortPref]
   );
 
-  // ---- Core data -----------------------------------------------------------
+  // Marca, bibliotecas y colecciones. Mientras hay un escaneo, se vuelven a pedir.
 
   const refreshLibraries = useCallback(async () => {
     const data = await api.libraries();
@@ -172,7 +186,7 @@ export default function ExplorerPage() {
     return () => window.clearTimeout(timer);
   }, [searchInput]);
 
-  // ---- Sources ---------------------------------------------------------------
+  // Una sola fuente para la grilla y el visor: páginas del catálogo, o una carpeta.
 
   const ready = status === "online" && viewReady;
   const isFolder = view.type === "folder";
@@ -212,7 +226,7 @@ export default function ExplorerPage() {
     setRecents((list) => (list[0] === path ? list : [path, ...list.filter((p) => !samePath(p, path))].slice(0, 8)));
   }, [folderData.listing?.path, isFolder, recentsReady, setRecents]);
 
-  // ---- Navigation ------------------------------------------------------------
+  // Cambiar de vista limpia los filtros de esa visita. El orden se queda.
 
   const navigate = useCallback(
     (next: View) => {
@@ -245,7 +259,7 @@ export default function ExplorerPage() {
     setSearch("");
   }, []);
 
-  // ---- Libraries and collections --------------------------------------------
+  // Alta, baja y colecciones. El disco no se toca: solo cambian filas del catálogo.
 
   const addLibrary = useCallback(
     async (path: string) => {
@@ -416,7 +430,7 @@ export default function ExplorerPage() {
     [toast]
   );
 
-  // ---- Folder picking ----------------------------------------------------------
+  // El diálogo propio, o el de Windows cuando la ventana manda "folder-picked".
 
   const choosePickedFolder = useCallback(
     (mode: PickerMode, path: string) => {
@@ -443,7 +457,7 @@ export default function ExplorerPage() {
     return () => host.removeEventListener?.("message", onMessage);
   }, [choosePickedFolder]);
 
-  // ---- Grid interaction --------------------------------------------------------
+  // Selección al estilo fotos: el primer clic abre, y con algo marcado los clics alternan.
 
   const handleToggle = useCallback(
     (index: number, item: MediaItem, mode: ToggleMode) => {
@@ -509,7 +523,7 @@ export default function ExplorerPage() {
   const prevTrack = audioNeighbor(-1);
   const nextTrack = audioNeighbor(1);
 
-  // ---- Derived labels ------------------------------------------------------------
+  // Título, subtítulo y el estado vacío salen de la vista, no de un pedido aparte.
 
   const library = view.type === "library" ? libraries.find((l) => l.id === view.id) : undefined;
   const collection = view.type === "collection" ? collections.find((c) => c.id === view.id) : undefined;
