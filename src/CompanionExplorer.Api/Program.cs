@@ -1,4 +1,6 @@
+using CompanionExplorer.Api;
 using CompanionExplorer.Core;
+using CompanionExplorer.Core.Catalog;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -20,10 +22,19 @@ var brandId = builder.Configuration["COMPANION_BRAND"]
 var brands = BrandStore.Load(AppContext.BaseDirectory, brandId);
 builder.Services.AddSingleton(brands);
 builder.Services.AddSingleton<FolderExplorer>();
-builder.Services.AddSingleton<IThumbnailSource>(_ => new ThumbnailService());
+
+// Un solo directorio de datos, fuera de las carpetas del usuario: catalog.db y cache/thumbs.
+var dataDirectory = AppDataPaths.Resolve(builder.Configuration["COMPANION_DATA_DIR"]);
+builder.Services.AddSingleton<IThumbnailSource>(_ =>
+    new ThumbnailService(Path.Combine(dataDirectory, "cache", "thumbs")));
+builder.Services.AddSingleton(_ => new CatalogStore(Path.Combine(dataDirectory, "catalog.db")));
+builder.Services.AddSingleton<CatalogScanner>();
+builder.Services.AddSingleton<CatalogScanWorker>();
+builder.Services.AddHostedService(sp => sp.GetRequiredService<CatalogScanWorker>());
 
 var app = builder.Build();
 app.UseCors();
+app.MapCatalogEndpoints();
 
 app.MapGet("/health", (BrandStore store) => Results.Ok(new
 {

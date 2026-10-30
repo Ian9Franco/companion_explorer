@@ -46,6 +46,11 @@ public sealed record FolderListing(
     IReadOnlyList<MediaFileEntry> Files,
     FolderSummary Summary);
 
+/// <summary>
+/// Lee una carpeta en el momento, sin pasar por el catálogo.
+/// Sirve para explorar antes de catalogar, y para el selector de carpetas.
+/// Lista un nivel. El aplanado, si se pide, corta en <see cref="MaxEnumeratedFiles"/>.
+/// </summary>
 public sealed class FolderExplorer
 {
     public const int MaxEnumeratedFiles = 25_000;
@@ -185,7 +190,7 @@ public sealed class FolderExplorer
             AttributesToSkip = FileAttributes.Hidden | FileAttributes.System
         };
 
-        var searchTokens = ParseSearchTokens(effectiveQuery.Search);
+        var searchTokens = SearchText.Tokenize(effectiveQuery.Search);
 
         var imageCount = 0;
         var videoCount = 0;
@@ -219,7 +224,7 @@ public sealed class FolderExplorer
                 continue;
             }
 
-            if (searchTokens.Length > 0 && !MatchesSearch(file.Name, relativePath, searchTokens))
+            if (!SearchText.Matches(relativePath, searchTokens))
                 continue;
 
             inspectedMediaCount++;
@@ -296,28 +301,6 @@ public sealed class FolderExplorer
 
         chain.Reverse();
         return chain;
-    }
-
-    private static string[] ParseSearchTokens(string? search)
-    {
-        if (string.IsNullOrWhiteSpace(search))
-            return [];
-
-        return search.Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
-    }
-
-    private static bool MatchesSearch(string fileName, string relativePath, string[] tokens)
-    {
-        foreach (var token in tokens)
-        {
-            if (!fileName.Contains(token, StringComparison.OrdinalIgnoreCase) &&
-                !relativePath.Contains(token, StringComparison.OrdinalIgnoreCase))
-            {
-                return false;
-            }
-        }
-
-        return true;
     }
 
     private static void SortFiles(List<MediaFileEntry> files, string? sortBy, bool? descendingOverride)
