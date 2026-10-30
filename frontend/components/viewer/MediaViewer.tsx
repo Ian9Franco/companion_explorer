@@ -517,7 +517,7 @@ export function MediaViewer({
               className={`filmstrip-item ${i === index ? "is-current" : ""} ${i === compareIndex ? "is-compare" : ""}`}
               style={{ transform: `translateX(${(i - index) * 62}px) scale(${i === index ? 1.12 : 1})` }}
               onClick={() => (compareIndex !== null && entry.kind === "image" ? setCompareIndex(i) : go(i))}
-              title={entry.name}
+              aria-label={entry.name}
             >
               {entry.kind === "audio" ? <Music size={16} /> : <img src={thumbUrl(entry.path, 120)} alt="" draggable={false} />}
             </button>

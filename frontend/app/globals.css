@@ -1374,9 +1374,8 @@ code,
   transition: opacity 180ms var(--ease), transform 180ms var(--ease);
 }
 
-.media-preview.kind-video .media-badge,
-.media-preview.kind-audio .media-badge,
-.media-card:hover .media-badge {
+.media-card:hover .media-badge,
+.media-thumb.is-ready ~ .media-badge {
   opacity: 1;
   transform: none;
 }

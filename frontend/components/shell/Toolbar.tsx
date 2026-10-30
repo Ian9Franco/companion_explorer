@@ -339,6 +339,10 @@ export function Toolbar(props: ToolbarProps) {
   );
 }
 
+function crumbLabel(crumb: { name: string; path: string }) {
+  return crumb.name === "/" || crumb.name === "\\" ? "Equipo" : crumb.name;
+}
+
 function Breadcrumbs({ folder, onOpen }: { folder: FolderListing; onOpen: (path: string) => void }) {
   const crumbs = folder.breadcrumbs;
   const visible = crumbs.length > 4 ? [crumbs[0], null, ...crumbs.slice(-3)] : crumbs;
@@ -353,10 +357,10 @@ function Breadcrumbs({ folder, onOpen }: { folder: FolderListing; onOpen: (path:
           <span key={crumb.path} className="crumb">
             {i > 0 ? <ChevronRight size={14} className="crumb-sep" /> : null}
             {i === visible.length - 1 ? (
-              <h1>{crumb.name}</h1>
+              <h1>{crumbLabel(crumb)}</h1>
             ) : (
               <button type="button" onClick={() => onOpen(crumb.path)}>
-                {crumb.name}
+                {crumbLabel(crumb)}
               </button>
             )}
           </span>

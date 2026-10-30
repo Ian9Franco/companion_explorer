@@ -61,7 +61,7 @@ export function Sidebar(props: SidebarProps) {
       initial={false}
     >
       <div className="sidebar-head">
-        <button type="button" className="sidebar-brand" onClick={() => props.onNavigate({ type: "all" })} title={brand?.productName}>
+        <button type="button" className="sidebar-brand" onClick={() => props.onNavigate({ type: "all" })}>
           {logo ? <img src={logo} alt="" /> : <span className="sidebar-logo-fallback" />}
           <AnimatePresence initial={false} mode="popLayout">
             {!collapsed ? (
@@ -303,7 +303,7 @@ function NavItem({ icon, label, title, meta, active, collapsed, progress, onClic
   return (
     <div className={`nav-item ${active ? "is-active" : ""} ${progress ? "is-progress" : ""}`}>
       {active ? <motion.span layoutId="nav-active" className="nav-active-pill" transition={spring} /> : null}
-      <button type="button" className="nav-main" onClick={onClick} title={collapsed ? label : title ?? label}>
+      <button type="button" className="nav-main" onClick={onClick} title={collapsed ? label : title && title !== label ? title : undefined}>
         <span className="nav-icon">{icon}</span>
         {!collapsed ? (
           <>
@@ -357,6 +357,9 @@ function CollectionCover({ collection }: { collection: CollectionInfo }) {
       src={thumbUrl(collection.coverPath, 96)}
       alt=""
       draggable={false}
+      onLoad={(e) => {
+        if (e.currentTarget.naturalWidth === 0) setFailed(true);
+      }}
       onError={() => setFailed(true)}
     />
   );

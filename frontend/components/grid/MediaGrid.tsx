@@ -333,7 +333,6 @@ const MediaCard = memo(function MediaCard({
       data-card-path={item.path}
       onClick={handleClick}
       onDoubleClick={() => selecting && onActivate(index, item)}
-      title={item.name}
     >
       <div className={`media-preview kind-${item.kind}`}>
         {item.kind !== "audio" && thumbState !== "failed" ? (

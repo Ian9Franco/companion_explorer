@@ -177,7 +177,7 @@ export function FolderPicker({ mode, initialPath, recents, nativeAvailable, onNa
               <span key={crumb.path} className="crumb">
                 {i > 0 ? <ChevronRight size={13} className="crumb-sep" /> : null}
                 <button type="button" onClick={() => setPath(crumb.path)}>
-                  {crumb.name}
+                  {crumb.name === "/" || crumb.name === "\\" ? "Equipo" : crumb.name}
                 </button>
               </span>
             ))}

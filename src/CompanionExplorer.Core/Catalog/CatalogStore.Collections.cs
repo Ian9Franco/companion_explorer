@@ -220,7 +220,7 @@ public sealed partial class CatalogStore
                 (SELECT COUNT(*) FROM collection_items ci WHERE ci.collection_id = c.id),
                 (SELECT f.path FROM collection_items ci JOIN files f ON f.id = ci.file_id
                  WHERE ci.collection_id = c.id AND f.kind IN (0, 1)
-                 ORDER BY ci.added_utc DESC, f.id DESC LIMIT 1)
+                 ORDER BY CASE WHEN f.kind = 0 THEN 0 ELSE 1 END, ci.added_utc DESC, f.id DESC LIMIT 1)
             FROM collections c {filter}
             ORDER BY c.name COLLATE NOCASE;
             """);

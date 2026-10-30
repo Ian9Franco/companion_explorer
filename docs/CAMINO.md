@@ -61,10 +61,24 @@ Esa división es la que Smart Scan no tenía: la interfaz y Pillow compartían u
 | GET | `/brand/logo` | SVG de la marca activa |
 | GET | `/roots` | Ubicaciones del sistema y unidades listas para explorar |
 | GET | `/folders` | Subcarpetas, archivos multimedia (`path`, `kind`, `search`, `sort`, `desc`, `recursive`) y resumen |
-| GET | `/thumb` | Miniatura achicada (`IShellItemImageFactory` en Windows + caché Zero-Touch en `LocalApplicationData`) |
-| GET | `/file` | Archivo original a tamaño real con soporte de rangos HTTP (`206 Partial Content`) para video y audio |
+| GET | `/thumb` | Miniatura achicada (`IShellItemImageFactory` en Windows + caché Zero-Touch). `204` si no hay miniatura |
+| GET | `/file` | Archivo original a tamaño real con rangos HTTP (`206`) para video y audio |
+| GET | `/libraries` | Bibliotecas catalogadas y si hay un escaneo en curso |
+| POST | `/libraries` | Agrega una carpeta (`201` nueva, `200` ya existía, `409` si queda anidada) y encola el escaneo |
+| POST | `/libraries/{id}/scan` | Vuelve a escanear (`202`) |
+| DELETE | `/libraries/{id}` | Quita la biblioteca del catálogo. No toca el disco |
+| GET | `/catalog/files` | Página del catálogo: `library`, `collection`, `kind`, `ext`, `search`, `from`, `to`, `sort`, `desc`, `offset`, `limit` |
+| GET | `/catalog/summary` | Conteos por tipo y extensión, y la línea de tiempo por mes. La línea de tiempo ignora `from`/`to`; los conteos de tipo ignoran `kind` y `ext` |
+| GET | `/collections` | Colecciones, con cantidad y portada |
+| POST | `/collections` | Crea una colección |
+| PATCH | `/collections/{id}` | La renombra |
+| DELETE | `/collections/{id}` | La borra. Los archivos siguen en su carpeta |
+| POST | `/collections/{id}/items` | Agrega rutas. Si el archivo no estaba catalogado, se ficha en el momento |
+| POST | `/collections/{id}/items/remove` | Quita rutas de la colección |
 
 El API escucha en `http://127.0.0.1:5080`. Next lee `NEXT_PUBLIC_API_URL`.
+
+El catálogo es `catalog.db` en el directorio de datos: `COMPANION_DATA_DIR`, o `%LocalAppData%/CompanionExplorer` si no está definida. Ahí también queda `cache/thumbs`. El escaneo no escribe nada en las carpetas del usuario. `COMPANION_SCAN_ON_START=false` evita reescanear al arrancar.
 
 ## Cómo se corre hoy
 

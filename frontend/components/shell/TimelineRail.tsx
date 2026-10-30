@@ -102,7 +102,7 @@ export function TimelineRail({ timeline, range, onRange }: TimelineRailProps) {
                             type="button"
                             className={`timeline-month ${active ? "is-active" : ""}`}
                             onClick={() => onRange(active ? null : mr)}
-                            title={`${mr.label}: ${formatCount(bucket.count)}`}
+                            aria-label={`${mr.label}, ${formatCount(bucket.count)}`}
                             initial={{ opacity: 0 }}
                             animate={{ opacity: 1 }}
                             exit={{ opacity: 0 }}

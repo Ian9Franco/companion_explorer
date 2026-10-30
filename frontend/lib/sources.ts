@@ -253,11 +253,13 @@ export function useFolderSource(
 }
 
 export function useCatalogSummary(params: URLSearchParams | null, refreshToken: number): CatalogSummary | null {
-  const key = params?.toString() ?? "";
+  // null means "do not query". An empty string is a real query: the whole catalog,
+  // whose params are only sort and direction and those are stripped before this hook.
+  const key = params === null ? null : params.toString();
   const [summary, setSummary] = useState<CatalogSummary | null>(null);
 
   useEffect(() => {
-    if (!params) return;
+    if (key === null || !params) return;
     const controller = new AbortController();
     api
       .catalogSummary(params, controller.signal)
