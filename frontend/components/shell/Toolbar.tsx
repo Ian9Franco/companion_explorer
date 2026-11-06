@@ -9,7 +9,9 @@ import {
   ChevronRight,
   CornerLeftUp,
   FolderPlus,
+  LayoutGrid,
   Layers,
+  List,
   Rows3,
   Search,
   X
@@ -17,7 +19,7 @@ import {
 import { CatalogSummary, Filters, FolderListing, MediaKind, SortKey } from "../../lib/api";
 import { formatBytes, formatCount } from "../../lib/format";
 import { ease, spring } from "../../lib/motion";
-import { Density } from "../grid/MediaGrid";
+import { Density, FolderLayout } from "../grid/MediaGrid";
 import { MenuItem, Popover } from "../ui/Popover";
 
 const KINDS: { id: "all" | MediaKind; label: string }[] = [
@@ -40,6 +42,11 @@ const DENSITIES: { id: Density; label: string }[] = [
   { id: "large", label: "L" }
 ];
 
+const FOLDER_LAYOUTS: { id: FolderLayout; label: string; icon: typeof LayoutGrid }[] = [
+  { id: "grid", label: "Cuadrícula", icon: LayoutGrid },
+  { id: "list", label: "Lista", icon: List }
+];
+
 type ToolbarProps = {
   title: ReactNode;
   subtitle: ReactNode;
@@ -49,6 +56,7 @@ type ToolbarProps = {
   filters: Filters;
   summary: CatalogSummary | null;
   density: Density;
+  folderLayout: FolderLayout;
   timelineOpen: boolean;
   folder: FolderListing | null;
   recursive: boolean;
@@ -56,6 +64,7 @@ type ToolbarProps = {
   onSearchInput: (value: string) => void;
   onFilters: (patch: Partial<Filters>) => void;
   onDensity: (density: Density) => void;
+  onFolderLayout: (layout: FolderLayout) => void;
   onToggleTimeline: () => void;
   onOpenFolder: (path: string) => void;
   onRecursive: (value: boolean) => void;
@@ -65,8 +74,10 @@ type ToolbarProps = {
 export function Toolbar(props: ToolbarProps) {
   const { filters, summary, folder } = props;
   const kinds = summary?.kinds;
+  const useTreeKinds = Boolean(folder && !props.recursive && summary?.treeKinds);
+  const countSource = useTreeKinds && summary?.treeKinds ? summary.treeKinds : kinds;
   const kindCount = (id: "all" | MediaKind) =>
-    !kinds ? null : id === "all" ? kinds.image + kinds.video + kinds.audio : kinds[id];
+    !countSource ? null : id === "all" ? countSource.image + countSource.video + countSource.audio : countSource[id];
   const sort = SORTS.find((s) => s.id === filters.sort) ?? SORTS[0];
   const extensions = summary?.extensions ?? [];
   const hasFilters = filters.extensions.length > 0 || filters.range !== null || filters.search.trim() !== "";
@@ -162,22 +173,48 @@ export function Toolbar(props: ToolbarProps) {
             )}
           </Popover>
 
-          <div className="segmented" role="group" aria-label="Tamaño de miniaturas">
-            {DENSITIES.map((d) => (
-              <button
-                key={d.id}
-                type="button"
-                className={`segmented-item ${props.density === d.id ? "is-active" : ""}`}
-                onClick={() => props.onDensity(d.id)}
-                aria-pressed={props.density === d.id}
-              >
-                {props.density === d.id ? (
-                  <motion.span layoutId="density-pill" className="segmented-pill" transition={spring} />
-                ) : null}
-                <span>{d.label}</span>
-              </button>
-            ))}
-          </div>
+          {folder ? (
+            <div className="segmented" role="group" aria-label="Tipo de vista">
+              {FOLDER_LAYOUTS.map((layout) => {
+                const Icon = layout.icon;
+                return (
+                  <button
+                    key={layout.id}
+                    type="button"
+                    className={`segmented-item ${props.folderLayout === layout.id ? "is-active" : ""}`}
+                    onClick={() => props.onFolderLayout(layout.id)}
+                    aria-pressed={props.folderLayout === layout.id}
+                    title={layout.label}
+                    aria-label={layout.label}
+                  >
+                    {props.folderLayout === layout.id ? (
+                      <motion.span layoutId="folder-layout-pill" className="segmented-pill" transition={spring} />
+                    ) : null}
+                    <Icon size={17} strokeWidth={1.75} />
+                  </button>
+                );
+              })}
+            </div>
+          ) : null}
+
+          {!(folder && props.folderLayout === "list") ? (
+            <div className="segmented" role="group" aria-label="Tamaño de miniaturas">
+              {DENSITIES.map((d) => (
+                <button
+                  key={d.id}
+                  type="button"
+                  className={`segmented-item ${props.density === d.id ? "is-active" : ""}`}
+                  onClick={() => props.onDensity(d.id)}
+                  aria-pressed={props.density === d.id}
+                >
+                  {props.density === d.id ? (
+                    <motion.span layoutId="density-pill" className="segmented-pill" transition={spring} />
+                  ) : null}
+                  <span>{d.label}</span>
+                </button>
+              ))}
+            </div>
+          ) : null}
 
           <button
             type="button"
@@ -388,7 +425,16 @@ function AnimatedCount({ value }: { value: number }) {
   );
 }
 
-export function describeSummary(summary: CatalogSummary | null, fallback = "Leyendo…") {
+export function describeSummary(summary: CatalogSummary | null, fallback = "Leyendo…", treeHint?: boolean) {
   if (!summary) return fallback;
-  return `${formatCount(summary.totalCount)} ${summary.totalCount === 1 ? "archivo" : "archivos"} · ${formatBytes(summary.totalBytes)}`;
+  const bytes = treeHint && summary.treeTotalBytes !== undefined ? summary.treeTotalBytes : summary.totalBytes;
+  let line = `${formatCount(summary.totalCount)} ${summary.totalCount === 1 ? "archivo" : "archivos"} · ${formatBytes(bytes)}`;
+  if (treeHint && summary.treeKinds) {
+    const t = summary.treeKinds;
+    const treeTotal = t.image + t.video + t.audio;
+    if (treeTotal !== summary.totalCount) {
+      line += ` · ${formatCount(treeTotal)} en subcarpetas`;
+    }
+  }
+  return line;
 }

@@ -52,6 +52,12 @@ export type FolderSummary = {
   videoCount: number;
   audioCount: number;
   totalBytes: number;
+  /** En esta carpeta y subcarpetas (sin aplanar listado). Igual que lo de arriba si recursive=true. */
+  treeTotalCount: number;
+  treeImageCount: number;
+  treeVideoCount: number;
+  treeAudioCount: number;
+  treeTotalBytes: number;
 };
 
 export type FolderListing = {
@@ -106,6 +112,9 @@ export type CatalogSummary = {
   kinds: { image: number; video: number; audio: number };
   extensions: { extension: string; count: number }[];
   timeline: TimelineBucket[];
+  /** Solo carpeta sin recursive: totales en el árbol para las pestañas. */
+  treeKinds?: { image: number; video: number; audio: number };
+  treeTotalBytes?: number;
 };
 
 export type SortKey = "date" | "name" | "size" | "type";

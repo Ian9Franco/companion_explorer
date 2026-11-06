@@ -31,6 +31,24 @@ public class FolderExplorerTests
     }
 
     [Fact]
+    public void Cuenta_archivos_en_subcarpetas_para_el_resumen_del_arbol()
+    {
+        using var sandbox = new TempMediaFolder();
+        sandbox.CreateFile(Path.Combine("sub", "dentro.png"), 800);
+
+        var explorer = new FolderExplorer();
+        var listing = explorer.ListFolder(sandbox.Path, new FolderQuery(Recursive: false));
+
+        Assert.Empty(listing.Files);
+        Assert.Equal(0, listing.Summary.TotalCount);
+        Assert.Equal(1, listing.Summary.TreeTotalCount);
+        Assert.Equal(1, listing.Summary.TreeImageCount);
+        Assert.Equal(0, listing.Summary.TreeVideoCount);
+        Assert.Equal(0, listing.Summary.TreeAudioCount);
+        Assert.Equal(800, listing.Summary.TreeTotalBytes);
+    }
+
+    [Fact]
     public void Filtra_por_tipo_manteniendo_los_contadores_del_resumen()
     {
         using var sandbox = new TempMediaFolder();

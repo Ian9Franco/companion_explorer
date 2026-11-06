@@ -28,7 +28,13 @@ public sealed record FolderSummary(
     int ImageCount,
     int VideoCount,
     int AudioCount,
-    long TotalBytes);
+    long TotalBytes,
+    /// <summary>Archivos multimedia en esta carpeta y todas sus subcarpetas (sin filtros de búsqueda).</summary>
+    int TreeTotalCount,
+    int TreeImageCount,
+    int TreeVideoCount,
+    int TreeAudioCount,
+    long TreeTotalBytes);
 
 public sealed record FolderQuery(
     string? Kind = null,
@@ -257,12 +263,37 @@ public sealed class FolderExplorer
 
         SortFiles(matchedFiles, effectiveQuery.SortBy, effectiveQuery.Descending);
 
-        var summary = new FolderSummary(
-            TotalCount: imageCount + videoCount + audioCount,
-            ImageCount: imageCount,
-            VideoCount: videoCount,
-            AudioCount: audioCount,
-            TotalBytes: totalBytes);
+        var directTotal = imageCount + videoCount + audioCount;
+        FolderSummary treeStats;
+        if (effectiveQuery.Recursive)
+        {
+            treeStats = new FolderSummary(
+                TotalCount: directTotal,
+                ImageCount: imageCount,
+                VideoCount: videoCount,
+                AudioCount: audioCount,
+                TotalBytes: totalBytes,
+                TreeTotalCount: directTotal,
+                TreeImageCount: imageCount,
+                TreeVideoCount: videoCount,
+                TreeAudioCount: audioCount,
+                TreeTotalBytes: totalBytes);
+        }
+        else
+        {
+            var deep = CountSubtreeMedia(dirInfo);
+            treeStats = new FolderSummary(
+                TotalCount: directTotal,
+                ImageCount: imageCount,
+                VideoCount: videoCount,
+                AudioCount: audioCount,
+                TotalBytes: totalBytes,
+                TreeTotalCount: deep.TotalCount,
+                TreeImageCount: deep.ImageCount,
+                TreeVideoCount: deep.VideoCount,
+                TreeAudioCount: deep.AudioCount,
+                TreeTotalBytes: deep.TotalBytes);
+        }
 
         var parentPath = dirInfo.Parent?.FullName;
         var breadcrumbs = BuildBreadcrumbs(dirInfo);
@@ -274,7 +305,64 @@ public sealed class FolderExplorer
             Breadcrumbs: breadcrumbs,
             Folders: folders,
             Files: matchedFiles,
-            Summary: summary);
+            Summary: treeStats);
+    }
+
+    private static (int TotalCount, int ImageCount, int VideoCount, int AudioCount, long TotalBytes) CountSubtreeMedia(DirectoryInfo root)
+    {
+        var subtreeOptions = new EnumerationOptions
+        {
+            IgnoreInaccessible = true,
+            ReturnSpecialDirectories = false,
+            RecurseSubdirectories = true,
+            MaxRecursionDepth = 16,
+            AttributesToSkip = FileAttributes.Hidden | FileAttributes.System
+        };
+
+        var img = 0;
+        var vid = 0;
+        var aud = 0;
+        long bytes = 0;
+        var n = 0;
+
+        foreach (var file in root.EnumerateFiles("*", subtreeOptions))
+        {
+            if (n >= MaxEnumeratedFiles)
+                break;
+
+            if (file.Name.StartsWith('.'))
+                continue;
+
+            if (!MediaTypes.TryGetKind(file.Extension, out var mediaKind))
+                continue;
+
+            long length;
+            try
+            {
+                length = file.Length;
+            }
+            catch
+            {
+                continue;
+            }
+
+            n++;
+            bytes += length;
+            switch (mediaKind)
+            {
+                case MediaKind.Image:
+                    img++;
+                    break;
+                case MediaKind.Video:
+                    vid++;
+                    break;
+                case MediaKind.Audio:
+                    aud++;
+                    break;
+            }
+        }
+
+        return (img + vid + aud, img, vid, aud, bytes);
     }
 
     public static string NormalizePath(string rawPath)

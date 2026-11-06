@@ -36,7 +36,7 @@ import { formatCount, lastSegment } from "../lib/format";
 import { ease } from "../lib/motion";
 import { messageOf, useCatalogSource, useCatalogSummary, useFolderSource } from "../lib/sources";
 import { usePersistentState } from "../lib/usePersistentState";
-import { Density, MediaGrid, ToggleMode } from "../components/grid/MediaGrid";
+import { Density, FolderLayout, MediaGrid, ToggleMode } from "../components/grid/MediaGrid";
 import { MediaViewer } from "../components/viewer/MediaViewer";
 import { AudioMiniPlayer } from "../components/AudioMiniPlayer";
 import { Sidebar } from "../components/shell/Sidebar";
@@ -81,6 +81,7 @@ export default function ExplorerPage() {
   const [view, setView, viewReady] = usePersistentState<View>("companion.view.v2", { type: "all" });
   const [recents, setRecents, recentsReady] = usePersistentState<string[]>("companion.recents.v2", []);
   const [density, setDensity] = usePersistentState<Density>("companion.density.v2", "medium");
+  const [folderLayout, setFolderLayout] = usePersistentState<FolderLayout>("companion.folderLayout.v1", "grid");
   const [collapsed, setCollapsed] = usePersistentState("companion.sidebar.v2", false);
   const [timelineOpen, setTimelineOpen] = usePersistentState("companion.timeline.v2", true);
   const [sortPref, setSortPref] = usePersistentState<{ sort: SortKey; desc: boolean }>("companion.sort.v2", {
@@ -541,7 +542,7 @@ export default function ExplorerPage() {
 
   const subtitle = (
     <>
-      <span>{describeSummary(summary)}</span>
+      <span>{describeSummary(summary, "Leyendo…", isFolder && !recursive)}</span>
       {library ? <span className="is-mono">{library.path}</span> : null}
       <AnimatePresence>
         {viewScanning ? (
@@ -642,6 +643,7 @@ export default function ExplorerPage() {
                 filters={filters}
                 summary={summary}
                 density={density}
+                folderLayout={folderLayout}
                 timelineOpen={timelineOpen}
                 folder={listing}
                 recursive={recursive}
@@ -649,6 +651,7 @@ export default function ExplorerPage() {
                 onSearchInput={setSearchInput}
                 onFilters={patchFilters}
                 onDensity={setDensity}
+                onFolderLayout={setFolderLayout}
                 onToggleTimeline={() => setTimelineOpen((v) => !v)}
                 onOpenFolder={(path) => navigate({ type: "folder", path })}
                 onRecursive={setRecursive}
@@ -681,6 +684,7 @@ export default function ExplorerPage() {
                         <MediaGrid
                           source={source}
                           density={density}
+                          viewMode={isFolder ? folderLayout : "grid"}
                           selected={selected}
                           focusIndex={focusIndex}
                           activeAudioPath={audio?.item.path ?? null}

@@ -15,6 +15,7 @@ import { formatBytes, formatMonthYear, formatShortDate } from "../../lib/format"
 import { MediaSource } from "../../lib/sources";
 
 export type Density = "compact" | "medium" | "large";
+export type FolderLayout = "grid" | "list";
 
 const DENSITY: Record<Density, { minWidth: number; gap: number; thumb: number }> = {
   compact: { minWidth: 150, gap: 10, thumb: 240 },
@@ -25,6 +26,9 @@ const DENSITY: Record<Density, { minWidth: number; gap: number; thumb: number }>
 const PADDING_X = 22;
 const PADDING_TOP = 18;
 const META_HEIGHT = 46;
+const LIST_ROW_HEIGHT = 54;
+const LIST_GAP = 6;
+const LIST_THUMB = 40;
 const OVERSCAN_ROWS = 3;
 const INTRO_WINDOW_MS = 700;
 const INTRO_MAX_STEPS = 18;
@@ -34,6 +38,7 @@ export type ToggleMode = "toggle" | "range";
 type MediaGridProps = {
   source: MediaSource;
   density: Density;
+  viewMode: FolderLayout;
   selected: ReadonlySet<string>;
   focusIndex: number;
   activeAudioPath: string | null;
@@ -49,6 +54,7 @@ type MediaGridProps = {
 export function MediaGrid({
   source,
   density,
+  viewMode,
   selected,
   focusIndex,
   activeAudioPath,
@@ -87,6 +93,25 @@ export function MediaGrid({
   }, [source.key, source.loaded]);
 
   const layout = useMemo(() => {
+    if (viewMode === "list") {
+      const columns = 1;
+      const rowHeight = LIST_ROW_HEIGHT;
+      const gap = LIST_GAP;
+      const rows = source.total;
+      const stride = rowHeight + gap;
+      const height = rows > 0 ? PADDING_TOP + rows * stride - gap + 120 : 0;
+      return {
+        mode: "list" as const,
+        gap,
+        thumb: LIST_THUMB,
+        columns,
+        cardWidth: Math.max(280, size.width - PADDING_X * 2),
+        rowHeight,
+        rows,
+        stride,
+        height
+      };
+    }
     const config = DENSITY[density];
     const usable = Math.max(280, size.width - PADDING_X * 2);
     const columns = Math.max(1, Math.floor((usable + config.gap) / (config.minWidth + config.gap)));
@@ -95,8 +120,8 @@ export function MediaGrid({
     const rows = Math.ceil(source.total / columns);
     const stride = rowHeight + config.gap;
     const height = rows > 0 ? PADDING_TOP + rows * stride - config.gap + 120 : 0;
-    return { ...config, columns, cardWidth, rowHeight, rows, stride, height };
-  }, [density, size.width, source.total]);
+    return { mode: "grid" as const, ...config, columns, cardWidth, rowHeight, rows, stride, height };
+  }, [density, size.width, source.total, viewMode]);
 
   const firstRow = Math.max(0, Math.floor((scrollTop - PADDING_TOP) / layout.stride) - OVERSCAN_ROWS);
   const lastRow = Math.min(
@@ -193,7 +218,10 @@ export function MediaGrid({
 
   const now = performance.now();
   const intro = introRef.current.key === source.key && now - introRef.current.at < INTRO_WINDOW_MS;
-  const firstVisibleIndex = Math.max(0, Math.floor((scrollTop - PADDING_TOP) / layout.stride)) * layout.columns;
+  const firstVisibleIndex =
+    layout.mode === "list"
+      ? Math.max(0, Math.floor((scrollTop - PADDING_TOP + layout.stride - 1) / layout.stride))
+      : Math.max(0, Math.floor((scrollTop - PADDING_TOP) / layout.stride)) * layout.columns;
   const bubbleItem = source.getItem(firstVisibleIndex);
   const scrollable = Math.max(1, layout.height - size.height);
   const bubbleTop = 12 + (Math.min(scrollTop, scrollable) / scrollable) * Math.max(0, size.height - 64);
@@ -212,33 +240,62 @@ export function MediaGrid({
         aria-rowcount={layout.rows}
         data-grid-root
       >
-        <div className="grid-stage" style={{ height: layout.height }}>
+        <div className={`grid-stage ${layout.mode === "list" ? "is-list" : ""}`} style={{ height: layout.height }}>
           {rows.map((row) => {
             const start = row * layout.columns;
             const count = Math.min(layout.columns, source.total - start);
             return (
               <div
                 key={row}
-                className="grid-row"
+                className={layout.mode === "list" ? "list-row-wrap" : "grid-row"}
                 role="row"
                 style={{
                   transform: `translate3d(0, ${PADDING_TOP + row * layout.stride}px, 0)`,
                   height: layout.rowHeight,
-                  gridTemplateColumns: `repeat(${layout.columns}, minmax(0, 1fr))`,
-                  gap: layout.gap,
-                  left: PADDING_X,
-                  right: PADDING_X
+                  ...(layout.mode === "grid"
+                    ? {
+                        gridTemplateColumns: `repeat(${layout.columns}, minmax(0, 1fr))`,
+                        gap: layout.gap,
+                        left: PADDING_X,
+                        right: PADDING_X
+                      }
+                    : { left: PADDING_X, right: PADDING_X })
                 }}
               >
                 {Array.from({ length: count }, (_, offset) => {
                   const index = start + offset;
                   const item = source.getItem(index);
-                  const step = index - introRef.current.firstIndex;
-                  const introDelay = intro && step < INTRO_MAX_STEPS * layout.columns
-                    ? Math.min(INTRO_MAX_STEPS, row - firstRow + offset * 0.35) * 32
-                    : null;
+                  const introDelay =
+                    layout.mode === "grid" && intro && index - introRef.current.firstIndex < INTRO_MAX_STEPS * layout.columns
+                      ? Math.min(INTRO_MAX_STEPS, row - firstRow + offset * 0.35) * 32
+                      : null;
 
-                  if (!item) return <div key={`skeleton-${index}`} className="media-card skeleton" role="gridcell" />;
+                  if (!item)
+                    return (
+                      <div
+                        key={`skeleton-${index}`}
+                        className={layout.mode === "list" ? "media-row skeleton" : "media-card skeleton"}
+                        role="gridcell"
+                      />
+                    );
+
+                  if (layout.mode === "list") {
+                    return (
+                      <MediaRow
+                        key={`${source.key}:${item.path}`}
+                        item={item}
+                        index={index}
+                        thumbSize={LIST_THUMB * 3}
+                        selected={selected.has(item.path)}
+                        selecting={selecting}
+                        focused={index === focusIndex}
+                        playing={activeAudioPath === item.path}
+                        onActivate={onActivate}
+                        onToggle={onToggle}
+                        onFocusIndex={onFocusIndex}
+                      />
+                    );
+                  }
 
                   return (
                     <MediaCard
@@ -264,7 +321,7 @@ export function MediaGrid({
       </div>
 
       <AnimatePresence>
-        {showDateBubble && scrolling && bubbleItem && layout.height > size.height * 1.5 ? (
+        {showDateBubble && layout.mode === "grid" && scrolling && bubbleItem && layout.height > size.height * 1.5 ? (
           <motion.div
             className="date-bubble"
             initial={{ opacity: 0, x: 12 }}
@@ -295,6 +352,109 @@ type MediaCardProps = {
 };
 
 const KIND_ICON = { image: ImageIcon, video: Film, audio: Music } as const;
+
+type MediaRowProps = {
+  item: MediaItem;
+  index: number;
+  thumbSize: number;
+  selected: boolean;
+  selecting: boolean;
+  focused: boolean;
+  playing: boolean;
+  onActivate: (index: number, item: MediaItem) => void;
+  onToggle: (index: number, item: MediaItem, mode: ToggleMode) => void;
+  onFocusIndex: (index: number) => void;
+};
+
+const MediaRow = memo(function MediaRow({
+  item,
+  index,
+  thumbSize,
+  selected,
+  selecting,
+  focused,
+  playing,
+  onActivate,
+  onToggle,
+  onFocusIndex
+}: MediaRowProps) {
+  const [thumbState, setThumbState] = useState<"loading" | "ready" | "failed">(
+    item.kind === "audio" ? "failed" : "loading"
+  );
+  const Icon = KIND_ICON[item.kind];
+  const extension = item.extension.replace(/^\./, "").toUpperCase();
+
+  const handleClick = (event: React.MouseEvent) => {
+    onFocusIndex(index);
+    if (event.shiftKey) onToggle(index, item, "range");
+    else if (event.ctrlKey || event.metaKey || selecting) onToggle(index, item, "toggle");
+    else onActivate(index, item);
+  };
+
+  return (
+    <div
+      className={[
+        "media-row",
+        selected ? "is-selected" : "",
+        selecting ? "is-selecting" : "",
+        focused ? "is-focused" : "",
+        playing ? "is-playing" : ""
+      ].join(" ")}
+      role="gridcell"
+      aria-selected={selected}
+      data-card-path={item.path}
+      onClick={handleClick}
+      onDoubleClick={() => selecting && onActivate(index, item)}
+    >
+      <div className={`media-row-thumb kind-${item.kind}`}>
+        {item.kind !== "audio" && thumbState !== "failed" ? (
+          <img
+            className={`media-thumb ${thumbState === "ready" ? "is-ready" : ""}`}
+            src={thumbUrl(item.path, thumbSize)}
+            alt=""
+            loading="lazy"
+            decoding="async"
+            draggable={false}
+            onLoad={(e) => setThumbState(e.currentTarget.naturalWidth > 0 ? "ready" : "failed")}
+            onError={() => setThumbState("failed")}
+          />
+        ) : null}
+        {thumbState !== "ready" ? (
+          <div className={`media-placeholder ${thumbState === "loading" ? "is-loading" : ""}`}>
+            <Icon size={20} strokeWidth={1.5} />
+          </div>
+        ) : null}
+        {playing ? (
+          <span className="media-eq" aria-label="Reproduciendo">
+            <i />
+            <i />
+            <i />
+          </span>
+        ) : null}
+        <button
+          type="button"
+          className="media-row-check"
+          aria-label={selected ? "Quitar de la selección" : "Seleccionar"}
+          onClick={(event) => {
+            event.stopPropagation();
+            onFocusIndex(index);
+            onToggle(index, item, event.shiftKey ? "range" : "toggle");
+          }}
+        >
+          <Check size={12} strokeWidth={3} />
+        </button>
+      </div>
+      <div className="media-row-body">
+        <div className="media-row-name">{item.name}</div>
+        <div className="media-row-sub">
+          <span className="media-row-kind">{extension}</span>
+          <span>{formatBytes(item.sizeBytes)}</span>
+          <span>{formatShortDate(item.modifiedUtc)}</span>
+        </div>
+      </div>
+    </div>
+  );
+});
 
 const MediaCard = memo(function MediaCard({
   item,

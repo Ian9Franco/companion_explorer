@@ -220,20 +220,34 @@ export function useFolderSource(
       ? {
           totalCount: visible.length,
           totalBytes: visible.reduce((sum, f) => sum + f.sizeBytes, 0),
-          kinds: {
-            image: listing.summary.imageCount,
-            video: listing.summary.videoCount,
-            audio: listing.summary.audioCount
-          },
+          kinds: recursive
+            ? {
+                image: listing.summary.imageCount,
+                video: listing.summary.videoCount,
+                audio: listing.summary.audioCount
+              }
+            : {
+                image: listing.summary.treeImageCount,
+                video: listing.summary.treeVideoCount,
+                audio: listing.summary.treeAudioCount
+              },
           extensions: [...extensionCounts]
             .map(([extension, count]) => ({ extension, count }))
             .sort((a, b) => b.count - a.count || a.extension.localeCompare(b.extension)),
-          timeline: [...bucketCounts.values()].sort((a, b) => b.year - a.year || b.month - a.month)
+          timeline: [...bucketCounts.values()].sort((a, b) => b.year - a.year || b.month - a.month),
+          treeKinds: recursive
+            ? undefined
+            : {
+                image: listing.summary.treeImageCount,
+                video: listing.summary.treeVideoCount,
+                audio: listing.summary.treeAudioCount
+              },
+          treeTotalBytes: recursive ? undefined : listing.summary.treeTotalBytes
         }
       : null;
 
     return { visible, summary };
-  }, [listing, extensionKey, rangeKey]);
+  }, [listing, extensionKey, rangeKey, recursive]);
 
   const visibleRef = useRef<MediaItem[]>([]);
   visibleRef.current = derived.visible;
