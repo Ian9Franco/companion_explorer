@@ -5,7 +5,7 @@ import { AnimatePresence, motion } from "motion/react";
 import { X } from "lucide-react";
 import { DateRange, TimelineBucket } from "../../lib/api";
 import { formatCount, monthRange, monthShortName, yearRange } from "../../lib/format";
-import { ease, spring } from "../../lib/motion";
+import { ease, panelSpring, spring } from "../../lib/motion";
 
 type TimelineRailProps = {
   timeline: TimelineBucket[] | null;
@@ -38,9 +38,15 @@ export function TimelineRail({ timeline, range, onRange }: TimelineRailProps) {
     <motion.aside
       className="timeline"
       aria-label="Línea de tiempo"
-      initial={{ width: 0, opacity: 0 }}
-      animate={{ width: 212, opacity: 1, transition: { ...spring, opacity: { duration: 0.2 } } }}
-      exit={{ width: 0, opacity: 0, transition: { duration: 0.22, ease } }}
+      initial={{ width: 0, opacity: 0, x: 16, filter: "blur(8px)" }}
+      animate={{
+        width: 212,
+        opacity: 1,
+        x: 0,
+        filter: "blur(0px)",
+        transition: { ...panelSpring, opacity: { duration: 0.24 } }
+      }}
+      exit={{ width: 0, opacity: 0, x: 12, filter: "blur(6px)", transition: { duration: 0.24, ease } }}
     >
       <div className="timeline-inner">
         <div className="timeline-head">

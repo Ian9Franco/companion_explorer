@@ -8,17 +8,19 @@ import {
   CalendarRange,
   ChevronRight,
   CornerLeftUp,
+  Brain,
   FolderPlus,
   LayoutGrid,
   Layers,
   List,
   Rows3,
+  ScanLine,
   Search,
   X
 } from "lucide-react";
 import { CatalogSummary, Filters, FolderListing, MediaKind, SortKey } from "../../lib/api";
 import { formatBytes, formatCount } from "../../lib/format";
-import { ease, spring } from "../../lib/motion";
+import { ease, panelSpring, spring, unfold } from "../../lib/motion";
 import { Density, FolderLayout } from "../grid/MediaGrid";
 import { MenuItem, Popover } from "../ui/Popover";
 
@@ -61,6 +63,8 @@ type ToolbarProps = {
   folder: FolderListing | null;
   recursive: boolean;
   canAddFolderAsLibrary: boolean;
+  brainMode: boolean;
+  onBrainMode: (on: boolean) => void;
   onSearchInput: (value: string) => void;
   onFilters: (patch: Partial<Filters>) => void;
   onDensity: (density: Density) => void;
@@ -100,9 +104,38 @@ export function Toolbar(props: ToolbarProps) {
           <div className="toolbar-subtitle">{props.subtitle}</div>
         </div>
 
+        <div className="segmented mode-switch" role="group" aria-label="Modo" data-brain={props.brainMode ? "on" : "off"}>
+          <button
+            type="button"
+            className={`segmented-item ${props.brainMode ? "" : "is-active"}`}
+            data-mode="manual"
+            aria-pressed={!props.brainMode}
+            aria-label="Manual"
+            title="Manual"
+            onClick={() => props.onBrainMode(false)}
+          >
+            {props.brainMode ? null : <motion.span layoutId="mode-pill" className="segmented-pill" transition={spring} />}
+            <ScanLine size={16} />
+            <span className="mode-switch-label">Manual</span>
+          </button>
+          <button
+            type="button"
+            className={`segmented-item ${props.brainMode ? "is-active" : ""}`}
+            data-mode="brain"
+            aria-pressed={props.brainMode}
+            aria-label="Modo cerebro"
+            title="Modo cerebro"
+            onClick={() => props.onBrainMode(true)}
+          >
+            {props.brainMode ? <motion.span layoutId="mode-pill" className="segmented-pill" transition={spring} /> : null}
+            <Brain size={16} />
+            <span className="mode-switch-label">Cerebro</span>
+          </button>
+        </div>
+
         <div className="toolbar-actions">
           <label className={`search-field ${props.searchInput ? "has-value" : ""}`}>
-            <Search size={16} />
+            {props.brainMode ? <Brain size={16} /> : <Search size={16} />}
             <input
               ref={props.searchRef}
               type="search"
@@ -114,8 +147,8 @@ export function Toolbar(props: ToolbarProps) {
                   props.onSearchInput("");
                 }
               }}
-              placeholder="Buscar por nombre o carpeta"
-              aria-label="Buscar"
+              placeholder={props.brainMode ? "Describí lo que querés encontrar" : "Buscar por nombre o carpeta"}
+              aria-label={props.brainMode ? "Buscar en modo cerebro" : "Buscar"}
             />
             <AnimatePresence>
               {props.searchInput ? (
@@ -229,7 +262,12 @@ export function Toolbar(props: ToolbarProps) {
         </div>
       </div>
 
-      <div className="toolbar-row is-filters">
+      <motion.div
+        className="toolbar-row is-filters"
+        layout
+        initial={{ opacity: 0, y: -8, filter: "blur(6px)" }}
+        animate={{ opacity: 1, y: 0, filter: "blur(0px)", transition: { duration: 0.36, ease } }}
+      >
         <div className="kind-tabs" role="tablist" aria-label="Tipo de archivo">
           {KINDS.map((kind) => {
             const active = filters.kind === kind.id;
@@ -337,16 +375,17 @@ export function Toolbar(props: ToolbarProps) {
             ) : null}
           </div>
         ) : null}
-      </div>
+      </motion.div>
 
       <AnimatePresence initial={false}>
         {folder && !props.recursive && folder.folders.length > 0 ? (
           <motion.div
             key={folder.path}
             className="subfolder-strip"
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: "auto", transition: { duration: 0.28, ease } }}
-            exit={{ opacity: 0, height: 0, transition: { duration: 0.18, ease } }}
+            variants={unfold}
+            initial="hidden"
+            animate="visible"
+            exit="exit"
           >
             <div className="subfolder-track">
               {folder.parentPath ? (
@@ -361,8 +400,14 @@ export function Toolbar(props: ToolbarProps) {
                   type="button"
                   className="subfolder-chip"
                   onClick={() => props.onOpenFolder(sub.path)}
-                  initial={{ opacity: 0, y: 6 }}
-                  animate={{ opacity: 1, y: 0, transition: { duration: 0.24, ease, delay: Math.min(i, 14) * 0.02 } }}
+                  initial={{ opacity: 0, y: 10, scale: 0.94, filter: "blur(4px)" }}
+                  animate={{
+                    opacity: 1,
+                    y: 0,
+                    scale: 1,
+                    filter: "blur(0px)",
+                    transition: { ...panelSpring, delay: Math.min(i, 16) * 0.025, opacity: { duration: 0.22 } }
+                  }}
                 >
                   <Rows3 size={14} />
                   {sub.name}

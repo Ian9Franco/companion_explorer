@@ -19,7 +19,7 @@ import {
 } from "lucide-react";
 import { Brand, CollectionInfo, LibraryInfo, View, brandLogoUrl, thumbUrl } from "../../lib/api";
 import { formatBytes, formatCount, lastSegment } from "../../lib/format";
-import { ease, spring } from "../../lib/motion";
+import { collapseLane, ease, panelSpring, spring, stagger } from "../../lib/motion";
 import { MenuItem, Popover } from "../ui/Popover";
 
 type SidebarProps = {
@@ -56,8 +56,11 @@ export function Sidebar(props: SidebarProps) {
   return (
     <motion.aside
       className={`sidebar ${collapsed ? "is-collapsed" : ""}`}
-      animate={{ width: collapsed ? 68 : 268 }}
-      transition={spring}
+      animate={{
+        width: collapsed ? 68 : 268,
+        boxShadow: collapsed ? "inset -1px 0 0 var(--border)" : "none"
+      }}
+      transition={panelSpring}
       initial={false}
     >
       <div className="sidebar-head">
@@ -76,18 +79,26 @@ export function Sidebar(props: SidebarProps) {
             ) : null}
           </AnimatePresence>
         </button>
-        <button
+        <motion.button
           type="button"
           className="icon-button sidebar-collapse"
           onClick={props.onToggleCollapsed}
           aria-label={collapsed ? "Expandir panel" : "Contraer panel"}
           title={collapsed ? "Expandir panel" : "Contraer panel"}
+          whileTap={{ scale: 0.9 }}
+          transition={spring}
         >
           {collapsed ? <PanelLeftOpen size={17} /> : <PanelLeftClose size={17} />}
-        </button>
+        </motion.button>
       </div>
 
-      <nav className="sidebar-scroll" aria-label="Navegación">
+      <motion.nav
+        className="sidebar-scroll"
+        aria-label="Navegación"
+        variants={stagger(collapsed ? 0.02 : 0.035, collapsed ? 0 : 0.04)}
+        initial={false}
+        animate="visible"
+      >
         <NavItem
           icon={<LayoutGrid size={17} />}
           label="Todo"
@@ -246,16 +257,17 @@ export function Sidebar(props: SidebarProps) {
             ))}
           </AnimatePresence>
         </Section>
-      </nav>
+      </motion.nav>
     </motion.aside>
   );
 }
 
 const listMotion = {
   layout: "position" as const,
-  initial: { opacity: 0, x: -10 },
-  animate: { opacity: 1, x: 0, transition: { duration: 0.26, ease } },
-  exit: { opacity: 0, x: -10, transition: { duration: 0.16, ease } },
+  variants: collapseLane,
+  initial: "hidden",
+  animate: "visible",
+  exit: "exit",
   transition: spring
 };
 
@@ -274,15 +286,24 @@ function Section({
 }) {
   return (
     <section className="sidebar-section">
-      <div className="sidebar-section-head">
-        {collapsed ? <span className="sidebar-divider" /> : <span>{title}</span>}
+      <motion.div className="sidebar-section-head" layout="position">
+        {collapsed ? <span className="sidebar-divider" /> : null}
+        <AnimatePresence mode="wait" initial={false}>
+          {!collapsed ? (
+            <motion.span key={`title-${title}`} variants={collapseLane} initial="hidden" animate="visible" exit="exit">
+              {title}
+            </motion.span>
+          ) : null}
+        </AnimatePresence>
         {onAction && !collapsed ? (
           <button type="button" className="icon-button is-small" onClick={onAction} aria-label={actionLabel} title={actionLabel}>
             <Plus size={15} />
           </button>
         ) : null}
-      </div>
-      {children}
+      </motion.div>
+      <motion.div layout="position" variants={stagger(0.03)} initial={false} animate="visible">
+        {children}
+      </motion.div>
     </section>
   );
 }
@@ -305,12 +326,21 @@ function NavItem({ icon, label, title, meta, active, collapsed, progress, onClic
       {active ? <motion.span layoutId="nav-active" className="nav-active-pill" transition={spring} /> : null}
       <button type="button" className="nav-main" onClick={onClick} title={collapsed ? label : title && title !== label ? title : undefined}>
         <span className="nav-icon">{icon}</span>
-        {!collapsed ? (
-          <>
-            <span className="nav-label">{label}</span>
-            {meta !== undefined ? <span className="nav-meta">{meta}</span> : null}
-          </>
-        ) : null}
+        <AnimatePresence mode="wait" initial={false}>
+          {!collapsed ? (
+            <motion.span
+              key="labels"
+              className="nav-copy"
+              variants={collapseLane}
+              initial="hidden"
+              animate="visible"
+              exit="exit"
+            >
+              <span className="nav-label">{label}</span>
+              {meta !== undefined ? <span className="nav-meta">{meta}</span> : null}
+            </motion.span>
+          ) : null}
+        </AnimatePresence>
       </button>
       {menu && !collapsed ? (
         <Popover

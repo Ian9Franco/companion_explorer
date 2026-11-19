@@ -271,12 +271,36 @@ export function MediaGrid({
                       : null;
 
                   if (!item)
-                    return (
-                      <div
+                    return layout.mode === "list" ? (
+                      <motion.div
                         key={`skeleton-${index}`}
-                        className={layout.mode === "list" ? "media-row skeleton" : "media-card skeleton"}
+                        className="media-row skeleton skeleton-rich"
                         role="gridcell"
-                      />
+                        initial={{ opacity: 0.4 }}
+                        animate={{ opacity: 1 }}
+                        transition={{ duration: 0.3, delay: (index % 8) * 0.04 }}
+                      >
+                        <span className="skeleton-block skeleton-thumb is-round" />
+                        <span className="skeleton-copy">
+                          <span className="skeleton-block skeleton-line is-wide" />
+                          <span className="skeleton-block skeleton-line" />
+                        </span>
+                      </motion.div>
+                    ) : (
+                      <motion.article
+                        key={`skeleton-${index}`}
+                        className="media-card skeleton skeleton-rich"
+                        role="gridcell"
+                        initial={{ opacity: 0.4, scale: 0.96 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        transition={{ duration: 0.32, delay: (index % 12) * 0.03 }}
+                      >
+                        <span className="skeleton-block skeleton-thumb" />
+                        <span className="skeleton-meta">
+                          <span className="skeleton-block skeleton-line is-wide" />
+                          <span className="skeleton-block skeleton-line" />
+                        </span>
+                      </motion.article>
                     );
 
                   if (layout.mode === "list") {
