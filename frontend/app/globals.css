@@ -29,7 +29,7 @@
 }
 
 :root {
-  color-scheme: dark;
+  color-scheme: dark light;
   --bg: #0e0e0d;
   --surface: #161614;
   --surface-2: #1d1d1a;
@@ -60,16 +60,28 @@
   --font-mono: "Cascadia Code", ui-monospace, "Fira Code", Menlo, monospace;
 }
 
-/* Modo cerebro: el acento pasa al azul de Smart Scan
-   (primario #5b8cff, secundario #7a9fff). */
+/* Modo cerebro: tema claro (blanco hueso + gris claro + azul eléctrico). */
 html.is-brain {
+  color-scheme: light;
+  --bg: #f7f4ee;
+  --surface: #ffffff;
+  --surface-2: #f1f4f8;
+  --surface-hover: #e7edf5;
+  --surface-active: #dce4f0;
+  --border: #dde4ed;
+  --border-strong: #c8d3e1;
+  --fg: #1a2230;
+  --muted: #556173;
+  --subtle: #738195;
   --accent: #5b8cff;
-  --accent-strong: #7a9fff;
-  --accent-ink: #071018;
-  --accent-bg: rgba(91, 140, 255, 0.15);
-  --accent-ring: rgba(91, 140, 255, 0.5);
+  --accent-strong: #3d74f5;
+  --accent-ink: #ffffff;
+  --accent-bg: rgba(91, 140, 255, 0.14);
+  --accent-ring: rgba(91, 140, 255, 0.45);
   --accent-rgb: 91, 140, 255;
   --accent-deep: #4a7ae8;
+  --shadow-lg: 0 22px 54px rgba(34, 58, 112, 0.12), 0 2px 8px rgba(34, 58, 112, 0.08);
+  --shadow-md: 0 10px 28px rgba(34, 58, 112, 0.1);
 }
 
 * {
@@ -78,11 +90,11 @@ html.is-brain {
 
 html {
   transition:
-    --accent 280ms var(--ease),
-    --accent-strong 280ms var(--ease),
-    --accent-ink 280ms var(--ease),
-    --accent-bg 280ms var(--ease),
-    --accent-ring 280ms var(--ease);
+    --accent 320ms var(--ease),
+    --accent-strong 320ms var(--ease),
+    --accent-ink 320ms var(--ease),
+    --accent-bg 320ms var(--ease),
+    --accent-ring 320ms var(--ease);
 }
 
 html,
@@ -94,6 +106,7 @@ body {
   font-family: var(--font-sans);
   font-size: 14px;
   -webkit-font-smoothing: antialiased;
+  transition: background-color 360ms var(--ease), color 360ms var(--ease);
 }
 
 body {
@@ -987,7 +1000,7 @@ code,
   z-index: 10;
   padding: 14px 22px 12px;
   border-bottom: 1px solid var(--border);
-  background: linear-gradient(var(--bg), rgba(14, 14, 13, 0.92));
+  background: linear-gradient(180deg, var(--bg) 0%, color-mix(in srgb, var(--bg) 88%, var(--surface-2)) 100%);
 }
 
 .toolbar-row {
@@ -1005,7 +1018,7 @@ code,
 
 html.is-brain .toolbar {
   border-bottom-color: var(--accent-ring);
-  background: linear-gradient(rgba(var(--accent-rgb), 0.07), rgba(14, 14, 13, 0.92));
+  background: linear-gradient(180deg, var(--bg) 0%, color-mix(in srgb, var(--surface) 88%, rgba(var(--accent-rgb), 0.06)) 100%);
 }
 
 .toolbar-row.is-filters {
@@ -3120,6 +3133,80 @@ html.is-brain .toolbar {
   .welcome-actions {
     grid-template-columns: 1fr;
   }
+}
+
+/* Ajustes del tema claro en modo cerebro. */
+html.is-brain .nav-item:hover {
+  background: rgba(var(--accent-rgb), 0.08);
+}
+
+html.is-brain .nav-active-pill {
+  box-shadow: inset 0 0 0 1px rgba(var(--accent-rgb), 0.22);
+}
+
+html.is-brain .sidebar {
+  background: color-mix(in srgb, var(--surface) 92%, var(--bg));
+}
+
+html.is-brain .welcome-glow {
+  background: radial-gradient(closest-side, rgba(var(--accent-rgb), 0.14), transparent 70%);
+}
+
+html.is-brain .media-row:hover {
+  background: rgba(var(--accent-rgb), 0.06);
+}
+
+html.is-brain .media-card:hover,
+html.is-brain .media-card.is-selecting {
+  background: rgba(var(--accent-rgb), 0.05);
+}
+
+html.is-brain .media-preview.kind-audio {
+  background: radial-gradient(circle at 30% 20%, rgba(var(--accent-rgb), 0.22), transparent 60%),
+    linear-gradient(160deg, #e6edf8, #f3f6fb);
+}
+
+html.is-brain .media-preview.kind-video {
+  background: #e8edf4;
+}
+
+html.is-brain .media-row-kind {
+  color: rgba(26, 34, 48, 0.45);
+}
+
+html.is-brain .media-check {
+  border-color: rgba(26, 34, 48, 0.35);
+  background: rgba(255, 255, 255, 0.72);
+}
+
+html.is-brain .media-badge {
+  background: rgba(255, 255, 255, 0.92);
+  color: #1a2230;
+}
+
+html.is-brain .skeleton-rich {
+  border-color: rgba(26, 34, 48, 0.06);
+  background: linear-gradient(140deg, var(--surface) 18%, var(--surface-2) 52%, var(--surface) 82%);
+}
+
+html.is-brain .skeleton-rich .skeleton-block {
+  background: rgba(26, 34, 48, 0.07);
+}
+
+html.is-brain .selection-bar,
+html.is-brain .toast,
+html.is-brain .miniplayer {
+  background: rgba(255, 255, 255, 0.94);
+  border-color: var(--border-strong);
+  color: var(--fg);
+}
+
+html.is-brain .miniplayer-play {
+  color: var(--accent-ink);
+}
+
+html.is-brain .shell {
+  background: var(--bg);
 }
 
 @media (prefers-reduced-motion: reduce) {
