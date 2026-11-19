@@ -43,6 +43,7 @@ import { AudioMiniPlayer } from "../components/AudioMiniPlayer";
 import { Sidebar } from "../components/shell/Sidebar";
 import { Toolbar, describeSummary } from "../components/shell/Toolbar";
 import { TimelineRail } from "../components/shell/TimelineRail";
+import { RevealFooter } from "../components/shell/RevealFooter";
 import { SelectionBar } from "../components/shell/SelectionBar";
 import { ToastStack, useToasts } from "../components/shell/Toasts";
 import { Welcome } from "../components/shell/Welcome";
@@ -771,6 +772,7 @@ export default function ExplorerPage() {
                 </AnimatePresence>
               </div>
             </div>
+            <RevealFooter />
           </motion.div>
         )}
       </AnimatePresence>
