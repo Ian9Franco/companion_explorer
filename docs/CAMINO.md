@@ -52,6 +52,7 @@ El estado de la pantalla vive en `frontend/app/page.tsx`. Los componentes dibuja
 | `ThumbnailService` | Miniatura cacheada. El visor no la usa |
 | `MediaGrid` | Solo las filas visibles. La entrada en cascada corre una vez por resultado |
 | `MediaViewer` | Abre desde la tarjeta con un transform y un recorte, y cierra hacia ella si sigue en pantalla |
+| `Embedding` | El vector de la búsqueda visual: id del modelo, dimensiones y números. No lo calcula ni lo guarda |
 
 Tres cosas que no se ven en la pantalla y cambian el resultado:
 
@@ -63,7 +64,7 @@ Tres cosas que no se ven en la pantalla y cambian el resultado:
 
 1. **Explorador, sin IA.** Hecho. Elegir carpeta, grilla virtualizada, miniatura del sistema, clic y la foto a tamaño real.
 2. **Catálogo.** Hecho. SQLite con ruta, tamaño, fecha y tipo. Filtros, colecciones y línea de tiempo sobre esa tabla.
-3. **Búsqueda visual.** Todavía no. Una interfaz `IEmbedder`: entra una imagen o un texto, sale un vector. La implementación puede ser ONNX con DirectML, o un proceso Python si SigLIP todavía no exporta. El índice guarda el id del modelo junto al vector. Si el modelo cambia, no se escribe encima de un índice viejo. Un video puede tener varios frames. La búsqueda muestra el archivo una sola vez.
+3. **Búsqueda visual.** En capas, para no mezclar el modelo con el catálogo. La capa 1 está hecha: `Embedding` y `EmbeddingModel` en `CompanionExplorer.Core/Search`. Un vector es el id del modelo, sus dimensiones y los números. El arreglo se copia al entrar y rechaza otra longitud, NaN e infinitos. Todavía no hay índice, ni `IEmbedder`, ni pantalla. Siguen el índice, el embedder de prueba, el worker, el API, la pantalla y, al final, el modelo: ONNX con DirectML, o un proceso al lado si SigLIP no exporta. El índice va a guardar el id del modelo junto al vector. Si el modelo cambia, no se escribe encima de un índice viejo. Un video puede tener varios frames. La búsqueda muestra el archivo una sola vez.
 
 ## Qué no entra desde Smart Scan
 
