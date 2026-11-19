@@ -6,6 +6,21 @@ $apiDir = Join-Path $root "api"
 $apiExe = Join-Path $apiDir "CompanionExplorer.Api.exe"
 $hostExe = Join-Path $root "CompanionExplorer.Host.exe"
 $logPath = Join-Path $root "companion-api.log"
+$errPath = Join-Path $root "companion-api.err.log"
+
+function Get-CompanionLogTail {
+    param([int]$Lines = 12)
+    $chunks = @()
+    foreach ($path in @($logPath, $errPath)) {
+        if (Test-Path $path) {
+            $chunks += Get-Content $path -Tail $Lines
+        }
+    }
+    if ($chunks.Count -eq 0) {
+        return ""
+    }
+    return $chunks -join [Environment]::NewLine
+}
 
 if (-not (Test-Path $apiExe)) {
     throw "No se encontró $apiExe. Ejecutá este script desde la carpeta del release."
@@ -16,28 +31,27 @@ if (-not (Test-Path $hostExe)) {
 
 $api = $null
 try {
-    if (Test-Path $logPath) {
-        Remove-Item $logPath -Force
+    foreach ($path in @($logPath, $errPath)) {
+        if (Test-Path $path) {
+            Remove-Item $path -Force
+        }
     }
 
-    Write-Host "Iniciando núcleo…"
+    Write-Host "Iniciando nucleo..."
     $api = Start-Process `
         -FilePath $apiExe `
         -WorkingDirectory $apiDir `
         -PassThru `
         -WindowStyle Hidden `
         -RedirectStandardOutput $logPath `
-        -RedirectStandardError $logPath
+        -RedirectStandardError $errPath
 
     $deadline = (Get-Date).AddSeconds(45)
     $ready = $false
     while ((Get-Date) -lt $deadline) {
         if ($api.HasExited) {
-            $tail = ""
-            if (Test-Path $logPath) {
-                $tail = (Get-Content $logPath -Tail 12) -join [Environment]::NewLine
-            }
-            throw "El núcleo se cerró antes de responder (código $($api.ExitCode)). Detalle en companion-api.log:`n$tail"
+            $tail = Get-CompanionLogTail
+            throw "El nucleo se cerro antes de responder (codigo $($api.ExitCode)). Detalle en companion-api.log / companion-api.err.log:`n$tail"
         }
 
         try {
@@ -53,10 +67,10 @@ try {
     }
 
     if (-not $ready) {
-        throw "El núcleo no respondió en 127.0.0.1:5080. Revisá companion-api.log en esta carpeta."
+        throw "El nucleo no respondio en 127.0.0.1:5080. Revisa companion-api.log y companion-api.err.log en esta carpeta."
     }
 
-    Write-Host "Abriendo Companion…"
+    Write-Host "Abriendo Companion..."
     $hostProcess = Start-Process -FilePath $hostExe -WorkingDirectory $root -PassThru -Wait
     exit $hostProcess.ExitCode
 } catch {
