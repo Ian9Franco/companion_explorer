@@ -3241,7 +3241,25 @@ html.is-brain .shell {
   text-transform: uppercase;
 }
 
-.toolbar.is-deck .mode-switch,
+html.is-brain .brain-lab {
+  color: var(--accent);
+  box-shadow: inset 0 0 0 1px rgba(var(--accent-rgb), 0.4);
+}
+
+html.is-brain .brain-lab.is-active {
+  background: var(--accent);
+  color: var(--accent-ink);
+  box-shadow: none;
+}
+
+.mode-cluster {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  z-index: 2;
+}
+
+.toolbar.is-deck .mode-cluster,
 .toolbar.is-deck .toolbar-actions {
   justify-self: end;
 }
@@ -3292,15 +3310,196 @@ html.is-brain .shell {
   color: var(--accent-ink);
 }
 
-html.is-brain .stage-row {
+html.is-brain:not(.is-brain-lab) .stage-row {
   padding: 0 16px 16px;
 }
 
-html.is-brain .stage {
+html.is-brain:not(.is-brain-lab) .stage {
   border-radius: 18px;
   border: 1px solid var(--border);
   background: var(--surface);
   overflow: hidden;
+}
+
+html.is-brain.is-brain-lab .shell {
+  background:
+    radial-gradient(980px 460px at 8% -8%, rgba(91, 140, 255, 0.22), transparent 62%),
+    radial-gradient(720px 420px at 96% 8%, rgba(176, 198, 255, 0.45), transparent 58%),
+    var(--bg);
+}
+
+html.is-brain.is-brain-lab .workspace {
+  position: relative;
+  isolation: isolate;
+}
+
+html.is-brain.is-brain-lab .workspace::before,
+html.is-brain.is-brain-lab .workspace::after {
+  content: "";
+  position: absolute;
+  pointer-events: none;
+  border-radius: 50%;
+  filter: blur(2px);
+  z-index: 0;
+}
+
+html.is-brain.is-brain-lab .workspace::before {
+  width: 460px;
+  height: 460px;
+  right: 6%;
+  top: -140px;
+  background: radial-gradient(circle, rgba(91, 140, 255, 0.34), transparent 68%);
+  animation: brain-drift 16s ease-in-out infinite alternate;
+}
+
+html.is-brain.is-brain-lab .workspace::after {
+  width: 320px;
+  height: 320px;
+  left: 18%;
+  bottom: -120px;
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.9), rgba(91, 140, 255, 0.16) 42%, transparent 70%);
+  animation: brain-drift 18s ease-in-out infinite alternate-reverse;
+}
+
+html.is-brain.is-brain-lab .toolbar,
+html.is-brain.is-brain-lab .stage-row {
+  position: relative;
+  z-index: 1;
+}
+
+html.is-brain.is-brain-lab .toolbar {
+  background: linear-gradient(180deg, rgba(247, 244, 238, 0.2), rgba(247, 244, 238, 0.72));
+  backdrop-filter: blur(16px);
+  border-bottom-color: transparent;
+}
+
+.brain-kicker {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0 0 2px;
+  color: var(--accent);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+html.is-brain.is-brain-lab .toolbar-title h1 {
+  font-weight: 500;
+  letter-spacing: -0.035em;
+}
+
+html.is-brain.is-brain-lab .mode-switch {
+  background: rgba(255, 255, 255, 0.72);
+  box-shadow: 0 10px 30px rgba(91, 140, 255, 0.12);
+}
+
+html.is-brain.is-brain-lab .mode-switch .segmented-item[data-mode="brain"].is-active .segmented-pill {
+  background: #fff;
+  box-shadow:
+    0 0 0 1px rgba(91, 140, 255, 0.55),
+    0 8px 22px rgba(91, 140, 255, 0.28);
+}
+
+html.is-brain.is-brain-lab .search-field.is-thought {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  width: 300px;
+  height: 42px;
+  border: 0;
+  border-radius: 14px;
+  background: transparent;
+  color: var(--accent);
+  box-shadow: 0 14px 36px rgba(61, 116, 245, 0.16);
+}
+
+html.is-brain.is-brain-lab .search-field.is-thought::before {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 160%;
+  height: 420%;
+  background: conic-gradient(from 0deg, transparent 0 68%, #5b8cff 82%, #ffffff 91%, transparent 100%);
+  transform: translate(-50%, -50%);
+  animation: brain-orbit 6s linear infinite;
+  z-index: 0;
+}
+
+html.is-brain.is-brain-lab .search-field.is-thought::after {
+  content: "";
+  position: absolute;
+  inset: 1.5px;
+  border-radius: 12.5px;
+  background: linear-gradient(180deg, #ffffff, #f4f7ff);
+  z-index: 0;
+}
+
+html.is-brain.is-brain-lab .search-field.is-thought > * {
+  position: relative;
+  z-index: 1;
+}
+
+html.is-brain.is-brain-lab .search-field.is-thought:focus-within {
+  width: 360px;
+  box-shadow: 0 18px 44px rgba(61, 116, 245, 0.22);
+}
+
+html.is-brain.is-brain-lab .search-field.is-thought svg {
+  color: var(--accent);
+  animation: brain-pulse 2.6s ease-in-out infinite;
+}
+
+html.is-brain.is-brain-lab .nav-active-pill {
+  background: linear-gradient(100deg, rgba(91, 140, 255, 0.2), rgba(91, 140, 255, 0.05));
+  box-shadow:
+    inset 0 0 0 1px rgba(91, 140, 255, 0.28),
+    0 10px 24px rgba(91, 140, 255, 0.12);
+}
+
+html.is-brain.is-brain-lab .media-preview {
+  border: 1px solid rgba(91, 140, 255, 0.14);
+  box-shadow: 0 12px 28px rgba(40, 70, 140, 0.08);
+  transition: transform 420ms var(--ease), box-shadow 420ms var(--ease), border-color 420ms var(--ease);
+}
+
+html.is-brain.is-brain-lab .media-card:not(.is-selected):hover .media-preview {
+  transform: translateY(-8px);
+  border-color: rgba(91, 140, 255, 0.45);
+  box-shadow: 0 22px 40px rgba(91, 140, 255, 0.2);
+}
+
+html.is-brain.is-brain-lab .timeline-bar i {
+  box-shadow: 0 0 12px rgba(91, 140, 255, 0.45);
+}
+
+@keyframes brain-orbit {
+  to {
+    transform: translate(-50%, -50%) rotate(1turn);
+  }
+}
+
+@keyframes brain-drift {
+  from {
+    transform: translate3d(-4%, 0, 0) scale(1);
+  }
+  to {
+    transform: translate3d(6%, 8%, 0) scale(1.08);
+  }
+}
+
+@keyframes brain-pulse {
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 0.75;
+  }
+  50% {
+    transform: scale(1.12);
+    opacity: 1;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

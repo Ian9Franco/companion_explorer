@@ -16,6 +16,7 @@ import {
   Rows3,
   ScanLine,
   Search,
+  TestTube,
   X
 } from "lucide-react";
 import { CatalogSummary, Filters, FolderListing, MediaKind, SortKey } from "../../lib/api";
@@ -64,7 +65,9 @@ type ToolbarProps = {
   recursive: boolean;
   canAddFolderAsLibrary: boolean;
   brainMode: boolean;
+  brainLab: boolean;
   onBrainMode: (on: boolean) => void;
+  onBrainLab: (on: boolean) => void;
   onSearchInput: (value: string) => void;
   onFilters: (patch: Partial<Filters>) => void;
   onDensity: (density: Density) => void;
@@ -85,6 +88,7 @@ export function Toolbar(props: ToolbarProps) {
   const sort = SORTS.find((s) => s.id === filters.sort) ?? SORTS[0];
   const extensions = summary?.extensions ?? [];
   const hasFilters = filters.extensions.length > 0 || filters.range !== null || filters.search.trim() !== "";
+  const brainDeck = props.brainMode && !props.brainLab;
   const months = [...(summary?.timeline ?? [])].sort((a, b) => a.year - b.year || a.month - b.month);
 
   const searchField = (
@@ -129,9 +133,23 @@ export function Toolbar(props: ToolbarProps) {
   );
 
   return (
-    <header className={`toolbar ${props.brainMode ? "is-deck" : ""}`}>
+    <header className={`toolbar ${brainDeck ? "is-deck" : ""}`}>
       <div className="toolbar-row">
         <div className="toolbar-title">
+          <AnimatePresence initial={false}>
+            {props.brainMode && props.brainLab ? (
+              <motion.p
+                key="brain-kicker"
+                className="brain-kicker"
+                initial={{ opacity: 0, y: 6, filter: "blur(6px)" }}
+                animate={{ opacity: 1, y: 0, filter: "blur(0px)", transition: { duration: 0.35, ease } }}
+                exit={{ opacity: 0, y: -4, filter: "blur(4px)", transition: { duration: 0.16 } }}
+              >
+                <Brain size={12} />
+                Modo cerebro
+              </motion.p>
+            ) : null}
+          </AnimatePresence>
           <AnimatePresence mode="popLayout" initial={false}>
             <motion.div
               key={props.titleKey}
@@ -146,6 +164,7 @@ export function Toolbar(props: ToolbarProps) {
           <div className="toolbar-subtitle">{props.subtitle}</div>
         </div>
 
+        <div className="mode-cluster">
         <div className="segmented mode-switch" role="group" aria-label="Modo" data-brain={props.brainMode ? "on" : "off"}>
           <button
             type="button"
@@ -174,9 +193,29 @@ export function Toolbar(props: ToolbarProps) {
             <span className="mode-switch-label">Cerebro</span>
           </button>
         </div>
+        <AnimatePresence initial={false}>
+          {props.brainMode ? (
+            <motion.button
+              key="brain-lab"
+              type="button"
+              className={`icon-button brain-lab ${props.brainLab ? "is-active" : ""}`}
+              aria-pressed={props.brainLab}
+              aria-label={props.brainLab ? "Experimental, estilo anterior" : "Experimental, estilo actual"}
+              title={props.brainLab ? "Experimental: estilo anterior" : "Experimental: estilo actual"}
+              onClick={() => props.onBrainLab(!props.brainLab)}
+              initial={{ opacity: 0, scale: 0.86 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.86 }}
+              transition={spring}
+            >
+              <TestTube size={16} />
+            </motion.button>
+          ) : null}
+        </AnimatePresence>
+        </div>
 
         <div className="toolbar-actions">
-          {props.brainMode ? null : searchField}
+          {brainDeck ? null : searchField}
 
           <Popover
             className="sort-menu"
@@ -254,7 +293,7 @@ export function Toolbar(props: ToolbarProps) {
             </div>
           ) : null}
 
-          {props.brainMode ? null : (
+          {brainDeck ? null : (
             <button
               type="button"
               className={`icon-button ${props.timelineOpen ? "is-active" : ""}`}
@@ -270,7 +309,7 @@ export function Toolbar(props: ToolbarProps) {
       </div>
 
       <AnimatePresence initial={false}>
-        {props.brainMode ? (
+        {brainDeck ? (
           <motion.div
             key="brain-deck"
             className="brain-deck"

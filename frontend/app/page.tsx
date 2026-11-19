@@ -90,6 +90,8 @@ export default function ExplorerPage() {
     desc: true
   });
   const [brainMode, setBrainMode] = usePersistentState("companion.brain.v1", false);
+  const [brainLab, setBrainLab] = usePersistentState("companion.brain.lab.v1", false);
+  const brainDeck = brainMode && !brainLab;
 
   const [kind, setKind] = useState<"all" | MediaKind>("all");
   const [extensions, setExtensions] = useState<string[]>([]);
@@ -122,9 +124,11 @@ export default function ExplorerPage() {
   );
 
   useEffect(() => {
-    document.documentElement.classList.toggle("is-brain", brainMode);
-    return () => document.documentElement.classList.remove("is-brain");
-  }, [brainMode]);
+    const root = document.documentElement;
+    root.classList.toggle("is-brain", brainMode);
+    root.classList.toggle("is-brain-lab", brainMode && brainLab);
+    return () => root.classList.remove("is-brain", "is-brain-lab");
+  }, [brainMode, brainLab]);
 
   const setMode = useCallback(
     (on: boolean) => {
@@ -637,8 +641,8 @@ export default function ExplorerPage() {
           >
             <Sidebar
               brand={brand}
-              collapsed={brainMode || collapsed}
-              railLocked={brainMode}
+              collapsed={brainDeck || collapsed}
+              railLocked={brainDeck}
               view={view}
               libraries={libraries}
               collections={collections}
@@ -670,7 +674,9 @@ export default function ExplorerPage() {
                 recursive={recursive}
                 canAddFolderAsLibrary={canAddFolderAsLibrary}
                 brainMode={brainMode}
+                brainLab={brainLab}
                 onBrainMode={setMode}
+                onBrainLab={setBrainLab}
                 onSearchInput={setSearchInput}
                 onFilters={patchFilters}
                 onDensity={setDensity}
@@ -759,7 +765,7 @@ export default function ExplorerPage() {
                 </main>
 
                 <AnimatePresence initial={false}>
-                  {timelineOpen && !brainMode ? (
+                  {timelineOpen && !brainDeck ? (
                     <TimelineRail key="timeline" timeline={summary?.timeline ?? null} range={range} onRange={setRange} />
                   ) : null}
                 </AnimatePresence>
