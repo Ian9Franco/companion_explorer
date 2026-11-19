@@ -7,8 +7,8 @@
  * la bienvenida cuando no hay bibliotecas ni una carpeta abierta, y el shell.
  *
  * Se recuerda entre visitas la vista, los recientes, la densidad, el sidebar,
- * la línea de tiempo y el orden. Tipo, fecha y búsqueda no: cambian seguido
- * y no tienen que sobrevivir un reinicio.
+ * la línea de tiempo, el orden y el modo cerebro. Tipo, fecha y búsqueda no:
+ * cambian seguido y no tienen que sobrevivir un reinicio.
  *
  * `refreshToken` vuelve a pedir lo que ya se está viendo (un escaneo que
  * avanzó, un archivo que entró a una colección) sin vaciar la grilla.
@@ -16,7 +16,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, MotionConfig, motion } from "motion/react";
-import { FolderSearch, Layers, RefreshCw, SearchX, Sparkles, TriangleAlert } from "lucide-react";
+import { Brain, FolderSearch, Layers, RefreshCw, SearchX, Sparkles, TriangleAlert } from "lucide-react";
 import {
   Brand,
   CollectionInfo,
@@ -37,6 +37,7 @@ import { ease } from "../lib/motion";
 import { messageOf, useCatalogSource, useCatalogSummary, useFolderSource } from "../lib/sources";
 import { usePersistentState } from "../lib/usePersistentState";
 import { Density, FolderLayout, MediaGrid, ToggleMode } from "../components/grid/MediaGrid";
+import { MediaGridSkeleton } from "../components/grid/MediaGridSkeleton";
 import { MediaViewer } from "../components/viewer/MediaViewer";
 import { AudioMiniPlayer } from "../components/AudioMiniPlayer";
 import { Sidebar } from "../components/shell/Sidebar";
@@ -88,6 +89,9 @@ export default function ExplorerPage() {
     sort: "date",
     desc: true
   });
+  const [brainMode, setBrainMode] = usePersistentState("companion.brain.v1", false);
+  const [brainLab, setBrainLab] = usePersistentState("companion.brain.lab.v1", false);
+  const brainDeck = brainMode && !brainLab;
 
   const [kind, setKind] = useState<"all" | MediaKind>("all");
   const [extensions, setExtensions] = useState<string[]>([]);
@@ -112,9 +116,27 @@ export default function ExplorerPage() {
   const { toasts, show: toast, dismiss } = useToasts();
   const searchRef = useRef<HTMLInputElement | null>(null);
 
+  // El modo cerebro no consulta el catálogo: no hay índice visual.
+  const catalogSearch = brainMode ? "" : search;
   const filters: Filters = useMemo(
-    () => ({ kind, extensions, search, range, sort: sortPref.sort, desc: sortPref.desc }),
-    [kind, extensions, search, range, sortPref]
+    () => ({ kind, extensions, search: catalogSearch, range, sort: sortPref.sort, desc: sortPref.desc }),
+    [catalogSearch, kind, extensions, range, sortPref]
+  );
+
+  useEffect(() => {
+    const root = document.documentElement;
+    root.classList.toggle("is-brain", brainMode);
+    root.classList.toggle("is-brain-lab", brainMode && brainLab);
+    return () => root.classList.remove("is-brain", "is-brain-lab");
+  }, [brainMode, brainLab]);
+
+  const setMode = useCallback(
+    (on: boolean) => {
+      setBrainMode(on);
+      setSearchInput("");
+      setSearch("");
+    },
+    [setBrainMode]
   );
 
   // Marca, bibliotecas y colecciones. Mientras hay un escaneo, se vuelven a pedir.
@@ -565,9 +587,11 @@ export default function ExplorerPage() {
     isFolder && !libraries.some((l) => isInside(view.path, l.path) || isInside(l.path, view.path));
 
   const hasFilters = extensions.length > 0 || range !== null || search !== "" || kind !== "all";
+  const brainSearch = brainMode && search !== "";
 
-  const stage: "loading" | "error" | "empty" | "grid" =
-    source.error && source.total === 0
+  const stage: "loading" | "error" | "empty" | "grid" = brainSearch
+    ? "empty"
+    : source.error && source.total === 0
       ? "error"
       : !source.loaded
         ? "loading"
@@ -617,7 +641,8 @@ export default function ExplorerPage() {
           >
             <Sidebar
               brand={brand}
-              collapsed={collapsed}
+              collapsed={brainDeck || collapsed}
+              railLocked={brainDeck}
               view={view}
               libraries={libraries}
               collections={collections}
@@ -648,6 +673,10 @@ export default function ExplorerPage() {
                 folder={listing}
                 recursive={recursive}
                 canAddFolderAsLibrary={canAddFolderAsLibrary}
+                brainMode={brainMode}
+                brainLab={brainLab}
+                onBrainMode={setMode}
+                onBrainLab={setBrainLab}
                 onSearchInput={setSearchInput}
                 onFilters={patchFilters}
                 onDensity={setDensity}
@@ -700,22 +729,25 @@ export default function ExplorerPage() {
                     ) : stage === "loading" ? (
                       <motion.div
                         key="loading"
-                        className="stage-fill skeleton-grid"
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1, transition: { delay: 0.12 } }}
-                        exit={{ opacity: 0, transition: { duration: 0.12 } }}
+                        className="stage-fill"
+                        initial={{ opacity: 0, scale: 0.985, filter: "blur(6px)" }}
+                        animate={{ opacity: 1, scale: 1, filter: "blur(0px)", transition: { duration: 0.38, ease } }}
+                        exit={{ opacity: 0, scale: 0.99, filter: "blur(4px)", transition: { duration: 0.16 } }}
                       >
-                        {Array.from({ length: 18 }, (_, i) => (
-                          <span key={i} className="media-card skeleton" style={{ animationDelay: `${i * 40}ms` }} />
-                        ))}
+                        <MediaGridSkeleton
+                          density={density}
+                          viewMode={isFolder ? folderLayout : "grid"}
+                          count={isFolder && folderLayout === "list" ? 14 : 20}
+                        />
                       </motion.div>
                     ) : (
                       <EmptyState
-                        key={`${stage}-${viewKey}`}
+                        key={`${stage}-${viewKey}${brainSearch ? "-brain" : ""}`}
                         stage={stage}
                         error={source.error}
                         view={view}
                         scanning={viewScanning}
+                        brainSearch={brainSearch}
                         hasFilters={hasFilters}
                         missing={library?.status === "missing"}
                         subfolders={listing?.folders.length ?? 0}
@@ -733,7 +765,7 @@ export default function ExplorerPage() {
                 </main>
 
                 <AnimatePresence initial={false}>
-                  {timelineOpen ? (
+                  {timelineOpen && !brainDeck ? (
                     <TimelineRail key="timeline" timeline={summary?.timeline ?? null} range={range} onRange={setRange} />
                   ) : null}
                 </AnimatePresence>
@@ -847,6 +879,7 @@ type EmptyStateProps = {
   error: string | null;
   view: View;
   scanning: boolean;
+  brainSearch: boolean;
   hasFilters: boolean;
   missing: boolean;
   subfolders: number;
@@ -868,6 +901,10 @@ function EmptyState(props: EmptyStateProps) {
     heading = props.view.type === "folder" ? "No se pudo abrir la carpeta" : "No se pudo leer el catálogo";
     body = props.error ?? "";
     action = props.view.type === "folder" ? { label: "Elegir otra carpeta", run: props.onBrowse } : { label: "Reintentar", run: props.onRetry };
+  } else if (props.brainSearch) {
+    icon = <Brain size={30} />;
+    heading = "Sin resultados";
+    body = "La búsqueda visual no está conectada.";
   } else if (props.scanning) {
     icon = <Sparkles size={30} />;
     heading = "Indexando…";

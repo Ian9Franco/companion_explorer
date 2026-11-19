@@ -8,17 +8,20 @@ import {
   CalendarRange,
   ChevronRight,
   CornerLeftUp,
+  Brain,
   FolderPlus,
   LayoutGrid,
   Layers,
   List,
   Rows3,
+  ScanLine,
   Search,
+  TestTube,
   X
 } from "lucide-react";
 import { CatalogSummary, Filters, FolderListing, MediaKind, SortKey } from "../../lib/api";
-import { formatBytes, formatCount } from "../../lib/format";
-import { ease, spring } from "../../lib/motion";
+import { formatBytes, formatCount, monthRange, monthShortName } from "../../lib/format";
+import { ease, panelSpring, spring, unfold } from "../../lib/motion";
 import { Density, FolderLayout } from "../grid/MediaGrid";
 import { MenuItem, Popover } from "../ui/Popover";
 
@@ -61,6 +64,10 @@ type ToolbarProps = {
   folder: FolderListing | null;
   recursive: boolean;
   canAddFolderAsLibrary: boolean;
+  brainMode: boolean;
+  brainLab: boolean;
+  onBrainMode: (on: boolean) => void;
+  onBrainLab: (on: boolean) => void;
   onSearchInput: (value: string) => void;
   onFilters: (patch: Partial<Filters>) => void;
   onDensity: (density: Density) => void;
@@ -81,11 +88,68 @@ export function Toolbar(props: ToolbarProps) {
   const sort = SORTS.find((s) => s.id === filters.sort) ?? SORTS[0];
   const extensions = summary?.extensions ?? [];
   const hasFilters = filters.extensions.length > 0 || filters.range !== null || filters.search.trim() !== "";
+  const brainDeck = props.brainMode && !props.brainLab;
+  const months = [...(summary?.timeline ?? [])].sort((a, b) => a.year - b.year || a.month - b.month);
+
+  const searchField = (
+    <label className={`search-field ${props.searchInput ? "has-value" : ""} ${props.brainMode ? "is-thought" : ""}`}>
+      {props.brainMode ? <Brain size={16} /> : <Search size={16} />}
+      <input
+        ref={props.searchRef}
+        type="search"
+        value={props.searchInput}
+        onChange={(e) => props.onSearchInput(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === "Escape" && props.searchInput) {
+            e.stopPropagation();
+            props.onSearchInput("");
+          }
+        }}
+        placeholder={props.brainMode ? "Describí lo que querés encontrar" : "Buscar por nombre o carpeta"}
+        aria-label={props.brainMode ? "Buscar en modo cerebro" : "Buscar"}
+      />
+      <AnimatePresence>
+        {props.searchInput ? (
+          <motion.button
+            key="clear"
+            type="button"
+            className="search-clear"
+            onClick={() => props.onSearchInput("")}
+            aria-label="Limpiar búsqueda"
+            initial={{ opacity: 0, scale: 0.6 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.6 }}
+            transition={{ duration: 0.14 }}
+          >
+            <X size={13} />
+          </motion.button>
+        ) : (
+          <motion.kbd key="hint" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+            Ctrl F
+          </motion.kbd>
+        )}
+      </AnimatePresence>
+    </label>
+  );
 
   return (
-    <header className="toolbar">
+    <header className={`toolbar ${brainDeck ? "is-deck" : ""}`}>
       <div className="toolbar-row">
         <div className="toolbar-title">
+          <AnimatePresence initial={false}>
+            {props.brainMode && props.brainLab ? (
+              <motion.p
+                key="brain-kicker"
+                className="brain-kicker"
+                initial={{ opacity: 0, y: 6, filter: "blur(6px)" }}
+                animate={{ opacity: 1, y: 0, filter: "blur(0px)", transition: { duration: 0.35, ease } }}
+                exit={{ opacity: 0, y: -4, filter: "blur(4px)", transition: { duration: 0.16 } }}
+              >
+                <Brain size={12} />
+                Modo cerebro
+              </motion.p>
+            ) : null}
+          </AnimatePresence>
           <AnimatePresence mode="popLayout" initial={false}>
             <motion.div
               key={props.titleKey}
@@ -100,45 +164,58 @@ export function Toolbar(props: ToolbarProps) {
           <div className="toolbar-subtitle">{props.subtitle}</div>
         </div>
 
+        <div className="mode-cluster">
+        <div className="segmented mode-switch" role="group" aria-label="Modo" data-brain={props.brainMode ? "on" : "off"}>
+          <button
+            type="button"
+            className={`segmented-item ${props.brainMode ? "" : "is-active"}`}
+            data-mode="manual"
+            aria-pressed={!props.brainMode}
+            aria-label="Manual"
+            title="Manual"
+            onClick={() => props.onBrainMode(false)}
+          >
+            {props.brainMode ? null : <motion.span layoutId="mode-pill" className="segmented-pill" transition={spring} />}
+            <ScanLine size={16} />
+            <span className="mode-switch-label">Manual</span>
+          </button>
+          <button
+            type="button"
+            className={`segmented-item ${props.brainMode ? "is-active" : ""}`}
+            data-mode="brain"
+            aria-pressed={props.brainMode}
+            aria-label="Modo cerebro"
+            title="Modo cerebro"
+            onClick={() => props.onBrainMode(true)}
+          >
+            {props.brainMode ? <motion.span layoutId="mode-pill" className="segmented-pill" transition={spring} /> : null}
+            <Brain size={16} />
+            <span className="mode-switch-label">Cerebro</span>
+          </button>
+        </div>
+        <AnimatePresence initial={false}>
+          {props.brainMode ? (
+            <motion.button
+              key="brain-lab"
+              type="button"
+              className={`icon-button brain-lab ${props.brainLab ? "is-active" : ""}`}
+              aria-pressed={props.brainLab}
+              aria-label={props.brainLab ? "Experimental, estilo anterior" : "Experimental, estilo actual"}
+              title={props.brainLab ? "Experimental: estilo anterior" : "Experimental: estilo actual"}
+              onClick={() => props.onBrainLab(!props.brainLab)}
+              initial={{ opacity: 0, scale: 0.86 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.86 }}
+              transition={spring}
+            >
+              <TestTube size={16} />
+            </motion.button>
+          ) : null}
+        </AnimatePresence>
+        </div>
+
         <div className="toolbar-actions">
-          <label className={`search-field ${props.searchInput ? "has-value" : ""}`}>
-            <Search size={16} />
-            <input
-              ref={props.searchRef}
-              type="search"
-              value={props.searchInput}
-              onChange={(e) => props.onSearchInput(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Escape" && props.searchInput) {
-                  e.stopPropagation();
-                  props.onSearchInput("");
-                }
-              }}
-              placeholder="Buscar por nombre o carpeta"
-              aria-label="Buscar"
-            />
-            <AnimatePresence>
-              {props.searchInput ? (
-                <motion.button
-                  key="clear"
-                  type="button"
-                  className="search-clear"
-                  onClick={() => props.onSearchInput("")}
-                  aria-label="Limpiar búsqueda"
-                  initial={{ opacity: 0, scale: 0.6 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.6 }}
-                  transition={{ duration: 0.14 }}
-                >
-                  <X size={13} />
-                </motion.button>
-              ) : (
-                <motion.kbd key="hint" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-                  Ctrl F
-                </motion.kbd>
-              )}
-            </AnimatePresence>
-          </label>
+          {brainDeck ? null : searchField}
 
           <Popover
             className="sort-menu"
@@ -216,20 +293,64 @@ export function Toolbar(props: ToolbarProps) {
             </div>
           ) : null}
 
-          <button
-            type="button"
-            className={`icon-button ${props.timelineOpen ? "is-active" : ""}`}
-            onClick={props.onToggleTimeline}
-            aria-pressed={props.timelineOpen}
-            aria-label="Línea de tiempo"
-            title="Línea de tiempo"
-          >
-            <CalendarRange size={17} />
-          </button>
+          {brainDeck ? null : (
+            <button
+              type="button"
+              className={`icon-button ${props.timelineOpen ? "is-active" : ""}`}
+              onClick={props.onToggleTimeline}
+              aria-pressed={props.timelineOpen}
+              aria-label="Línea de tiempo"
+              title="Línea de tiempo"
+            >
+              <CalendarRange size={17} />
+            </button>
+          )}
         </div>
       </div>
 
-      <div className="toolbar-row is-filters">
+      <AnimatePresence initial={false}>
+        {brainDeck ? (
+          <motion.div
+            key="brain-deck"
+            className="brain-deck"
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: "auto", opacity: 1, transition: panelSpring }}
+            exit={{ height: 0, opacity: 0, transition: { duration: 0.22, ease } }}
+          >
+            <p className="brain-deck-label">
+              <Brain size={12} />
+              Búsqueda visual
+            </p>
+            {searchField}
+            {months.length > 0 ? (
+              <div className="brain-axis" role="group" aria-label="Línea de tiempo">
+                {months.map((bucket) => {
+                  const next = monthRange(bucket.year, bucket.month);
+                  const active = filters.range?.from === next.from && filters.range?.to === next.to;
+                  return (
+                    <button
+                      key={`${bucket.year}-${bucket.month}`}
+                      type="button"
+                      className={active ? "is-active" : ""}
+                      aria-pressed={active}
+                      onClick={() => props.onFilters({ range: active ? null : next })}
+                    >
+                      {monthShortName(bucket.month)} {bucket.year}
+                    </button>
+                  );
+                })}
+              </div>
+            ) : null}
+          </motion.div>
+        ) : null}
+      </AnimatePresence>
+
+      <motion.div
+        className="toolbar-row is-filters"
+        layout
+        initial={{ opacity: 0, y: -8, filter: "blur(6px)" }}
+        animate={{ opacity: 1, y: 0, filter: "blur(0px)", transition: { duration: 0.36, ease } }}
+      >
         <div className="kind-tabs" role="tablist" aria-label="Tipo de archivo">
           {KINDS.map((kind) => {
             const active = filters.kind === kind.id;
@@ -337,16 +458,17 @@ export function Toolbar(props: ToolbarProps) {
             ) : null}
           </div>
         ) : null}
-      </div>
+      </motion.div>
 
       <AnimatePresence initial={false}>
         {folder && !props.recursive && folder.folders.length > 0 ? (
           <motion.div
             key={folder.path}
             className="subfolder-strip"
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: "auto", transition: { duration: 0.28, ease } }}
-            exit={{ opacity: 0, height: 0, transition: { duration: 0.18, ease } }}
+            variants={unfold}
+            initial="hidden"
+            animate="visible"
+            exit="exit"
           >
             <div className="subfolder-track">
               {folder.parentPath ? (
@@ -361,8 +483,14 @@ export function Toolbar(props: ToolbarProps) {
                   type="button"
                   className="subfolder-chip"
                   onClick={() => props.onOpenFolder(sub.path)}
-                  initial={{ opacity: 0, y: 6 }}
-                  animate={{ opacity: 1, y: 0, transition: { duration: 0.24, ease, delay: Math.min(i, 14) * 0.02 } }}
+                  initial={{ opacity: 0, y: 10, scale: 0.94, filter: "blur(4px)" }}
+                  animate={{
+                    opacity: 1,
+                    y: 0,
+                    scale: 1,
+                    filter: "blur(0px)",
+                    transition: { ...panelSpring, delay: Math.min(i, 16) * 0.025, opacity: { duration: 0.22 } }
+                  }}
                 >
                   <Rows3 size={14} />
                   {sub.name}

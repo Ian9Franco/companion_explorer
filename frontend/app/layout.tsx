@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { poppins } from "../lib/fonts";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -8,8 +9,8 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="es">
-      <body>{children}</body>
+    <html lang="es" className={poppins.variable}>
+      <body className={poppins.className}>{children}</body>
     </html>
   );
 }
