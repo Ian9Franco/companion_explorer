@@ -90,6 +90,20 @@ export function Toolbar(props: ToolbarProps) {
     <header className="toolbar">
       <div className="toolbar-row">
         <div className="toolbar-title">
+          <AnimatePresence initial={false}>
+            {props.brainMode ? (
+              <motion.p
+                key="brain-kicker"
+                className="brain-kicker"
+                initial={{ opacity: 0, y: 6, filter: "blur(6px)" }}
+                animate={{ opacity: 1, y: 0, filter: "blur(0px)", transition: { duration: 0.35, ease } }}
+                exit={{ opacity: 0, y: -4, filter: "blur(4px)", transition: { duration: 0.16 } }}
+              >
+                <Brain size={12} />
+                Modo cerebro
+              </motion.p>
+            ) : null}
+          </AnimatePresence>
           <AnimatePresence mode="popLayout" initial={false}>
             <motion.div
               key={props.titleKey}
@@ -134,7 +148,7 @@ export function Toolbar(props: ToolbarProps) {
         </div>
 
         <div className="toolbar-actions">
-          <label className={`search-field ${props.searchInput ? "has-value" : ""}`}>
+          <label className={`search-field ${props.searchInput ? "has-value" : ""} ${props.brainMode ? "is-thought" : ""}`}>
             {props.brainMode ? <Brain size={16} /> : <Search size={16} />}
             <input
               ref={props.searchRef}
