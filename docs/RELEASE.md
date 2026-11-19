@@ -16,7 +16,7 @@ Los datos (`catalog.db`, miniaturas) van a `%LocalAppData%\CompanionExplorer`.
 2. Descomprimí la carpeta (por ejemplo `v0.1.0-win-x64`).
 3. Abrí **`Start-Companion.bat`** (o `Start-Companion.ps1`).
 
-El launcher levanta el API en segundo plano, espera `http://127.0.0.1:5080/health` y abre la ventana. Al cerrar la ventana, detiene el API. Si la consola se queda quieta o falla, mirá **`companion-api.log`** en la misma carpeta (suele ser puerto incorrecto en builds anteriores a v0.1.1 o falta de `brands/`).
+El launcher levanta el API en segundo plano, espera `http://127.0.0.1:5080/health` y abre la ventana. Al cerrar la ventana, detiene el API. Si la consola se queda quieta o falla, mirá **`companion-api.log`** y **`companion-api.err.log`** en la misma carpeta (suele ser puerto incorrecto en builds anteriores a v0.1.1 o falta de `brands/`).
 
 Contenido de la carpeta:
 
