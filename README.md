@@ -29,3 +29,5 @@ El API queda en `http://127.0.0.1:5080`. Next, en `http://localhost:3000`.
 El catálogo SQLite y las miniaturas viven en `COMPANION_DATA_DIR` (si no, en `%LocalAppData%/CompanionExplorer`). Las carpetas del usuario no se modifican.
 
 La ventana nativa (`src/CompanionExplorer.Host`) usa WebView2 y solo compila en Windows.
+
+Para empaquetar un ZIP portable o publicar un release con tag `v*`, mirá [docs/RELEASE.md](docs/RELEASE.md).
