@@ -19,7 +19,7 @@ import {
   X
 } from "lucide-react";
 import { CatalogSummary, Filters, FolderListing, MediaKind, SortKey } from "../../lib/api";
-import { formatBytes, formatCount } from "../../lib/format";
+import { formatBytes, formatCount, monthRange, monthShortName } from "../../lib/format";
 import { ease, panelSpring, spring, unfold } from "../../lib/motion";
 import { Density, FolderLayout } from "../grid/MediaGrid";
 import { MenuItem, Popover } from "../ui/Popover";
@@ -85,25 +85,53 @@ export function Toolbar(props: ToolbarProps) {
   const sort = SORTS.find((s) => s.id === filters.sort) ?? SORTS[0];
   const extensions = summary?.extensions ?? [];
   const hasFilters = filters.extensions.length > 0 || filters.range !== null || filters.search.trim() !== "";
+  const months = [...(summary?.timeline ?? [])].sort((a, b) => a.year - b.year || a.month - b.month);
+
+  const searchField = (
+    <label className={`search-field ${props.searchInput ? "has-value" : ""} ${props.brainMode ? "is-thought" : ""}`}>
+      {props.brainMode ? <Brain size={16} /> : <Search size={16} />}
+      <input
+        ref={props.searchRef}
+        type="search"
+        value={props.searchInput}
+        onChange={(e) => props.onSearchInput(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === "Escape" && props.searchInput) {
+            e.stopPropagation();
+            props.onSearchInput("");
+          }
+        }}
+        placeholder={props.brainMode ? "Describí lo que querés encontrar" : "Buscar por nombre o carpeta"}
+        aria-label={props.brainMode ? "Buscar en modo cerebro" : "Buscar"}
+      />
+      <AnimatePresence>
+        {props.searchInput ? (
+          <motion.button
+            key="clear"
+            type="button"
+            className="search-clear"
+            onClick={() => props.onSearchInput("")}
+            aria-label="Limpiar búsqueda"
+            initial={{ opacity: 0, scale: 0.6 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.6 }}
+            transition={{ duration: 0.14 }}
+          >
+            <X size={13} />
+          </motion.button>
+        ) : (
+          <motion.kbd key="hint" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+            Ctrl F
+          </motion.kbd>
+        )}
+      </AnimatePresence>
+    </label>
+  );
 
   return (
-    <header className="toolbar">
+    <header className={`toolbar ${props.brainMode ? "is-deck" : ""}`}>
       <div className="toolbar-row">
         <div className="toolbar-title">
-          <AnimatePresence initial={false}>
-            {props.brainMode ? (
-              <motion.p
-                key="brain-kicker"
-                className="brain-kicker"
-                initial={{ opacity: 0, y: 6, filter: "blur(6px)" }}
-                animate={{ opacity: 1, y: 0, filter: "blur(0px)", transition: { duration: 0.35, ease } }}
-                exit={{ opacity: 0, y: -4, filter: "blur(4px)", transition: { duration: 0.16 } }}
-              >
-                <Brain size={12} />
-                Modo cerebro
-              </motion.p>
-            ) : null}
-          </AnimatePresence>
           <AnimatePresence mode="popLayout" initial={false}>
             <motion.div
               key={props.titleKey}
@@ -148,44 +176,7 @@ export function Toolbar(props: ToolbarProps) {
         </div>
 
         <div className="toolbar-actions">
-          <label className={`search-field ${props.searchInput ? "has-value" : ""} ${props.brainMode ? "is-thought" : ""}`}>
-            {props.brainMode ? <Brain size={16} /> : <Search size={16} />}
-            <input
-              ref={props.searchRef}
-              type="search"
-              value={props.searchInput}
-              onChange={(e) => props.onSearchInput(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Escape" && props.searchInput) {
-                  e.stopPropagation();
-                  props.onSearchInput("");
-                }
-              }}
-              placeholder={props.brainMode ? "Describí lo que querés encontrar" : "Buscar por nombre o carpeta"}
-              aria-label={props.brainMode ? "Buscar en modo cerebro" : "Buscar"}
-            />
-            <AnimatePresence>
-              {props.searchInput ? (
-                <motion.button
-                  key="clear"
-                  type="button"
-                  className="search-clear"
-                  onClick={() => props.onSearchInput("")}
-                  aria-label="Limpiar búsqueda"
-                  initial={{ opacity: 0, scale: 0.6 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.6 }}
-                  transition={{ duration: 0.14 }}
-                >
-                  <X size={13} />
-                </motion.button>
-              ) : (
-                <motion.kbd key="hint" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-                  Ctrl F
-                </motion.kbd>
-              )}
-            </AnimatePresence>
-          </label>
+          {props.brainMode ? null : searchField}
 
           <Popover
             className="sort-menu"
@@ -263,18 +254,57 @@ export function Toolbar(props: ToolbarProps) {
             </div>
           ) : null}
 
-          <button
-            type="button"
-            className={`icon-button ${props.timelineOpen ? "is-active" : ""}`}
-            onClick={props.onToggleTimeline}
-            aria-pressed={props.timelineOpen}
-            aria-label="Línea de tiempo"
-            title="Línea de tiempo"
-          >
-            <CalendarRange size={17} />
-          </button>
+          {props.brainMode ? null : (
+            <button
+              type="button"
+              className={`icon-button ${props.timelineOpen ? "is-active" : ""}`}
+              onClick={props.onToggleTimeline}
+              aria-pressed={props.timelineOpen}
+              aria-label="Línea de tiempo"
+              title="Línea de tiempo"
+            >
+              <CalendarRange size={17} />
+            </button>
+          )}
         </div>
       </div>
+
+      <AnimatePresence initial={false}>
+        {props.brainMode ? (
+          <motion.div
+            key="brain-deck"
+            className="brain-deck"
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: "auto", opacity: 1, transition: panelSpring }}
+            exit={{ height: 0, opacity: 0, transition: { duration: 0.22, ease } }}
+          >
+            <p className="brain-deck-label">
+              <Brain size={12} />
+              Búsqueda visual
+            </p>
+            {searchField}
+            {months.length > 0 ? (
+              <div className="brain-axis" role="group" aria-label="Línea de tiempo">
+                {months.map((bucket) => {
+                  const next = monthRange(bucket.year, bucket.month);
+                  const active = filters.range?.from === next.from && filters.range?.to === next.to;
+                  return (
+                    <button
+                      key={`${bucket.year}-${bucket.month}`}
+                      type="button"
+                      className={active ? "is-active" : ""}
+                      aria-pressed={active}
+                      onClick={() => props.onFilters({ range: active ? null : next })}
+                    >
+                      {monthShortName(bucket.month)} {bucket.year}
+                    </button>
+                  );
+                })}
+              </div>
+            ) : null}
+          </motion.div>
+        ) : null}
+      </AnimatePresence>
 
       <motion.div
         className="toolbar-row is-filters"

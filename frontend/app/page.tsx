@@ -637,7 +637,8 @@ export default function ExplorerPage() {
           >
             <Sidebar
               brand={brand}
-              collapsed={collapsed}
+              collapsed={brainMode || collapsed}
+              railLocked={brainMode}
               view={view}
               libraries={libraries}
               collections={collections}
@@ -758,7 +759,7 @@ export default function ExplorerPage() {
                 </main>
 
                 <AnimatePresence initial={false}>
-                  {timelineOpen ? (
+                  {timelineOpen && !brainMode ? (
                     <TimelineRail key="timeline" timeline={summary?.timeline ?? null} range={range} onRange={setRange} />
                   ) : null}
                 </AnimatePresence>

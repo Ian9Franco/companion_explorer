@@ -4,6 +4,7 @@ import { FormEvent, ReactNode, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import {
   AlertTriangle,
+  Brain,
   FolderOpen,
   FolderSearch,
   History,
@@ -25,6 +26,7 @@ import { MenuItem, Popover } from "../ui/Popover";
 type SidebarProps = {
   brand: Brand | null;
   collapsed: boolean;
+  railLocked?: boolean;
   view: View;
   libraries: LibraryInfo[];
   collections: CollectionInfo[];
@@ -82,13 +84,14 @@ export function Sidebar(props: SidebarProps) {
         <motion.button
           type="button"
           className="icon-button sidebar-collapse"
-          onClick={props.onToggleCollapsed}
-          aria-label={collapsed ? "Expandir panel" : "Contraer panel"}
-          title={collapsed ? "Expandir panel" : "Contraer panel"}
-          whileTap={{ scale: 0.9 }}
+          onClick={props.railLocked ? undefined : props.onToggleCollapsed}
+          disabled={props.railLocked}
+          aria-label={props.railLocked ? "El panel se pliega en modo cerebro" : collapsed ? "Expandir panel" : "Contraer panel"}
+          title={props.railLocked ? "El panel se pliega en modo cerebro" : collapsed ? "Expandir panel" : "Contraer panel"}
+          whileTap={props.railLocked ? undefined : { scale: 0.9 }}
           transition={spring}
         >
-          {collapsed ? <PanelLeftOpen size={17} /> : <PanelLeftClose size={17} />}
+          {props.railLocked ? <Brain size={17} /> : collapsed ? <PanelLeftOpen size={17} /> : <PanelLeftClose size={17} />}
         </motion.button>
       </div>
 
