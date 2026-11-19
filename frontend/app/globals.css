@@ -3515,3 +3515,69 @@ html.is-brain.is-brain-lab .timeline-bar i {
     animation: none;
   }
 }
+
+/* ---------- Footer oculto ---------- */
+
+.footer-dock {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 48;
+  height: 10px;
+}
+
+.reveal-footer {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  min-height: 40px;
+  padding: 8px 18px;
+  border-top: 1px solid var(--border);
+  background: color-mix(in srgb, var(--surface) 94%, transparent);
+  color: var(--muted);
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.reveal-footer-id {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-width: 0;
+  margin: 0;
+}
+
+.reveal-footer-id span:first-child {
+  color: var(--fg);
+  font-weight: 600;
+}
+
+.reveal-footer-links {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.reveal-footer-links a {
+  color: var(--muted);
+  text-decoration: none;
+}
+
+.reveal-footer-links a:hover {
+  color: var(--accent);
+}
+
+@media (max-width: 860px) {
+  .reveal-footer {
+    white-space: normal;
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 6px;
+  }
+}
