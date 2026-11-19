@@ -4,6 +4,9 @@ using CompanionExplorer.Core.Catalog;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// launchSettings no aplica al .exe publicado: fijamos 5080 para que coincida con el front y el launcher.
+builder.WebHost.UseUrls("http://127.0.0.1:5080");
+
 builder.Services.AddCors(options =>
 {
     options.AddDefaultPolicy(policy =>
