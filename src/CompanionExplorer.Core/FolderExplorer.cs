@@ -62,7 +62,7 @@ public sealed class FolderExplorer
     public const int MaxEnumeratedFiles = 25_000;
 
     /// <summary>Raíz del Explorador de Windows para equipos y recursos compartidos (solo UNC).</summary>
-    public const string WindowsNetworkRoot = @"\\";
+    public const string WindowsNetworkRoot = UncPaths.Root;
 
     public IReadOnlyList<RootEntry> GetRoots(string? extraRootPath = null)
     {
@@ -156,9 +156,23 @@ public sealed class FolderExplorer
             throw new ArgumentException("La ruta de la carpeta es obligatoria.", nameof(folderPath));
 
         var normalizedPath = NormalizePath(folderPath);
+        if (OperatingSystem.IsWindows() && UncPaths.IsUnc(normalizedPath))
+        {
+            if (UncPaths.IsRoot(normalizedPath))
+                return ListNetworkRoot();
+
+            if (UncPaths.Segments(normalizedPath).Count == 1)
+                return ListNetworkServer(normalizedPath);
+        }
+
         var dirInfo = new DirectoryInfo(normalizedPath);
         if (!dirInfo.Exists)
-            throw new DirectoryNotFoundException($"No existe la carpeta '{normalizedPath}'.");
+        {
+            var message = UncPaths.IsUnc(normalizedPath)
+                ? $"No se pudo abrir '{normalizedPath}'. Comprobá que el equipo esté disponible y que tengas permiso."
+                : $"No existe la carpeta '{normalizedPath}'.";
+            throw new DirectoryNotFoundException(message);
+        }
 
         var effectiveQuery = query ?? new FolderQuery();
         if (!MediaTypes.TryParseKindFilter(effectiveQuery.Kind, out var kindFilter))
@@ -271,7 +285,22 @@ public sealed class FolderExplorer
 
         var directTotal = imageCount + videoCount + audioCount;
         FolderSummary treeStats;
-        if (effectiveQuery.Recursive)
+        if (UncPaths.IsUnc(normalizedPath))
+        {
+            // Un recorrido completo por SMB deja colgada la red. El conteo es solo de esta carpeta.
+            treeStats = new FolderSummary(
+                TotalCount: directTotal,
+                ImageCount: imageCount,
+                VideoCount: videoCount,
+                AudioCount: audioCount,
+                TotalBytes: totalBytes,
+                TreeTotalCount: directTotal,
+                TreeImageCount: imageCount,
+                TreeVideoCount: videoCount,
+                TreeAudioCount: audioCount,
+                TreeTotalBytes: totalBytes);
+        }
+        else if (effectiveQuery.Recursive)
         {
             treeStats = new FolderSummary(
                 TotalCount: directTotal,
@@ -301,12 +330,25 @@ public sealed class FolderExplorer
                 TreeTotalBytes: deep.TotalBytes);
         }
 
-        var parentPath = dirInfo.Parent?.FullName;
-        var breadcrumbs = BuildBreadcrumbs(dirInfo);
+        string listingPath;
+        string? parentPath;
+        IReadOnlyList<BreadcrumbEntry> breadcrumbs;
+        if (UncPaths.IsUnc(normalizedPath))
+        {
+            listingPath = UncPaths.Canonical(normalizedPath);
+            parentPath = UncPaths.Parent(listingPath);
+            breadcrumbs = UncPaths.Breadcrumbs(listingPath);
+        }
+        else
+        {
+            listingPath = dirInfo.FullName;
+            parentPath = dirInfo.Parent?.FullName;
+            breadcrumbs = BuildBreadcrumbs(dirInfo);
+        }
 
         return new FolderListing(
-            Path: dirInfo.FullName,
-            Name: GetDisplayName(dirInfo.FullName),
+            Path: listingPath,
+            Name: GetDisplayName(listingPath),
             ParentPath: parentPath,
             Breadcrumbs: breadcrumbs,
             Folders: folders,
@@ -377,67 +419,67 @@ public sealed class FolderExplorer
         if (string.IsNullOrWhiteSpace(trimmed))
             throw new ArgumentException("La ruta está vacía.", nameof(rawPath));
 
-        if (OperatingSystem.IsWindows())
+        if (OperatingSystem.IsWindows() && UncPaths.IsUnc(trimmed))
         {
-            if (trimmed.StartsWith("//", StringComparison.Ordinal))
-                trimmed = WindowsNetworkRoot + trimmed[2..].Replace('/', '\\');
+            if (UncPaths.IsRoot(trimmed))
+                return UncPaths.Root;
 
-            if (IsNetworkRoot(trimmed))
-                return WindowsNetworkRoot;
-
-            if (trimmed.StartsWith(WindowsNetworkRoot, StringComparison.Ordinal))
+            trimmed = UncPaths.Canonical(trimmed);
+            try
             {
-                trimmed = trimmed.Replace('/', '\\');
-                while (trimmed.Length > 2 && trimmed.EndsWith('\\'))
-                    trimmed = trimmed[..^1];
-
-                try
-                {
-                    return Path.GetFullPath(trimmed);
-                }
-                catch (ArgumentException)
-                {
-                    return trimmed;
-                }
+                return Path.GetFullPath(trimmed);
+            }
+            catch (ArgumentException)
+            {
+                return trimmed;
             }
         }
 
         return Path.GetFullPath(trimmed);
     }
 
+    private static readonly FolderSummary EmptySummary = new(0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+
+    private static FolderListing ListNetworkRoot() =>
+        new(
+            Path: UncPaths.Root,
+            Name: "Red",
+            ParentPath: null,
+            Breadcrumbs: UncPaths.Breadcrumbs(UncPaths.Root),
+            Folders: WindowsNetworkCatalog.ListComputers(),
+            Files: [],
+            Summary: EmptySummary);
+
+    private static FolderListing ListNetworkServer(string serverUnc)
+    {
+        var canonical = UncPaths.Canonical(serverUnc);
+        if (!WindowsNetworkCatalog.TryListShares(canonical, out var shares, out var error))
+            throw new DirectoryNotFoundException(error ?? $"No se pudo abrir '{canonical}'.");
+
+        return new FolderListing(
+            Path: canonical,
+            Name: GetDisplayName(canonical),
+            ParentPath: UncPaths.Parent(canonical),
+            Breadcrumbs: UncPaths.Breadcrumbs(canonical),
+            Folders: shares,
+            Files: [],
+            Summary: EmptySummary);
+    }
+
     private static string GetDisplayName(string fullPath)
     {
-        if (OperatingSystem.IsWindows() && IsNetworkRoot(fullPath))
+        if (UncPaths.IsRoot(fullPath))
             return "Red";
 
-        if (OperatingSystem.IsWindows() && fullPath.StartsWith(WindowsNetworkRoot, StringComparison.Ordinal))
+        if (UncPaths.IsUnc(fullPath))
         {
-            var segments = SplitUncSegments(fullPath);
+            var segments = UncPaths.Segments(fullPath);
             if (segments.Count > 0)
                 return segments[^1];
         }
 
         var name = Path.GetFileName(Path.TrimEndingDirectorySeparator(fullPath));
         return string.IsNullOrEmpty(name) ? fullPath : name;
-    }
-
-    private static bool IsNetworkRoot(string path)
-    {
-        if (!OperatingSystem.IsWindows())
-            return false;
-
-        var normalized = path.Trim().Trim('"').Replace('/', '\\').TrimEnd('\\');
-        return normalized is "\\" or "\\\\";
-    }
-
-    private static List<string> SplitUncSegments(string uncPath)
-    {
-        var trimmed = uncPath.TrimEnd('\\');
-        if (IsNetworkRoot(uncPath))
-            return [];
-
-        var inner = trimmed.StartsWith(WindowsNetworkRoot, StringComparison.Ordinal) ? trimmed[2..] : trimmed;
-        return inner.Split('\\', StringSplitOptions.RemoveEmptyEntries).ToList();
     }
 
     private static IReadOnlyList<BreadcrumbEntry> BuildBreadcrumbs(DirectoryInfo directory)
