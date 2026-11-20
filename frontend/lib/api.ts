@@ -14,6 +14,29 @@ export type Brand = {
   logoUrl: string;
 };
 
+export type BrainStatus = {
+  phase: string;
+  indexReady: boolean;
+  embedderReady: boolean;
+  modelId: string | null;
+  indexedVectors: number;
+  message: string;
+};
+
+export type BrainSearchHit = {
+  path: string;
+  score: number;
+};
+
+export type BrainSearchResponse = {
+  query: string;
+  phase: string;
+  indexReady: boolean;
+  embedderReady: boolean;
+  results: BrainSearchHit[];
+  message: string;
+};
+
 export type RootEntry = {
   name: string;
   path: string;
@@ -220,7 +243,14 @@ export const api = {
     request<{ added: number; collection: CollectionInfo }>(`/collections/${id}/items`, { method: "POST", ...json({ paths }) }),
 
   removeFromCollection: (id: number, paths: string[]) =>
-    request<{ removed: number; collection: CollectionInfo }>(`/collections/${id}/items/remove`, { method: "POST", ...json({ paths }) })
+    request<{ removed: number; collection: CollectionInfo }>(`/collections/${id}/items/remove`, { method: "POST", ...json({ paths }) }),
+
+  brainStatus: (signal?: AbortSignal) => request<BrainStatus>("/brain/status", { signal }),
+
+  brainSearch: (query: string, limit = 48, signal?: AbortSignal) => {
+    const params = new URLSearchParams({ q: query.trim(), limit: String(limit) });
+    return request<BrainSearchResponse>(`/brain/search?${params}`, { signal });
+  }
 };
 
 export function catalogParams(view: View, filters: Filters): URLSearchParams {

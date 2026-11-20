@@ -16,8 +16,9 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, MotionConfig, motion } from "motion/react";
-import { Brain, FolderSearch, Layers, RefreshCw, SearchX, Sparkles, TriangleAlert } from "lucide-react";
+import { FolderSearch, Layers, RefreshCw, SearchX, Sparkles, TriangleAlert } from "lucide-react";
 import {
+  BrainStatus,
   Brand,
   CollectionInfo,
   DateRange,
@@ -91,8 +92,7 @@ export default function ExplorerPage() {
     desc: true
   });
   const [brainMode, setBrainMode] = usePersistentState("companion.brain.v1", false);
-  const [brainLab, setBrainLab] = usePersistentState("companion.brain.lab.v1", false);
-  const brainDeck = brainMode && !brainLab;
+  const [brainStatus, setBrainStatus] = useState<BrainStatus | null>(null);
 
   const [kind, setKind] = useState<"all" | MediaKind>("all");
   const [extensions, setExtensions] = useState<string[]>([]);
@@ -127,9 +127,21 @@ export default function ExplorerPage() {
   useEffect(() => {
     const root = document.documentElement;
     root.classList.toggle("is-brain", brainMode);
-    root.classList.toggle("is-brain-lab", brainMode && brainLab);
-    return () => root.classList.remove("is-brain", "is-brain-lab");
-  }, [brainMode, brainLab]);
+    return () => root.classList.remove("is-brain");
+  }, [brainMode]);
+
+  useEffect(() => {
+    if (!brainMode || status !== "online") {
+      setBrainStatus(null);
+      return;
+    }
+    const controller = new AbortController();
+    api
+      .brainStatus(controller.signal)
+      .then(setBrainStatus)
+      .catch(() => setBrainStatus(null));
+    return () => controller.abort();
+  }, [brainMode, status]);
 
   const setMode = useCallback(
     (on: boolean) => {
@@ -588,11 +600,8 @@ export default function ExplorerPage() {
     isFolder && !libraries.some((l) => isInside(view.path, l.path) || isInside(l.path, view.path));
 
   const hasFilters = extensions.length > 0 || range !== null || search !== "" || kind !== "all";
-  const brainSearch = brainMode && search !== "";
-
-  const stage: "loading" | "error" | "empty" | "grid" = brainSearch
-    ? "empty"
-    : source.error && source.total === 0
+  const stage: "loading" | "error" | "empty" | "grid" =
+    source.error && source.total === 0
       ? "error"
       : !source.loaded
         ? "loading"
@@ -642,8 +651,8 @@ export default function ExplorerPage() {
           >
             <Sidebar
               brand={brand}
-              collapsed={brainDeck || collapsed}
-              railLocked={brainDeck}
+              collapsed={collapsed}
+              railLocked={false}
               view={view}
               libraries={libraries}
               collections={collections}
@@ -675,9 +684,8 @@ export default function ExplorerPage() {
                 recursive={recursive}
                 canAddFolderAsLibrary={canAddFolderAsLibrary}
                 brainMode={brainMode}
-                brainLab={brainLab}
+                brainStatus={brainStatus}
                 onBrainMode={setMode}
-                onBrainLab={setBrainLab}
                 onSearchInput={setSearchInput}
                 onFilters={patchFilters}
                 onDensity={setDensity}
@@ -743,12 +751,11 @@ export default function ExplorerPage() {
                       </motion.div>
                     ) : (
                       <EmptyState
-                        key={`${stage}-${viewKey}${brainSearch ? "-brain" : ""}`}
+                        key={`${stage}-${viewKey}`}
                         stage={stage}
                         error={source.error}
                         view={view}
                         scanning={viewScanning}
-                        brainSearch={brainSearch}
                         hasFilters={hasFilters}
                         missing={library?.status === "missing"}
                         subfolders={listing?.folders.length ?? 0}
@@ -766,7 +773,7 @@ export default function ExplorerPage() {
                 </main>
 
                 <AnimatePresence initial={false}>
-                  {timelineOpen && !brainDeck ? (
+                  {timelineOpen ? (
                     <TimelineRail key="timeline" timeline={summary?.timeline ?? null} range={range} onRange={setRange} />
                   ) : null}
                 </AnimatePresence>
@@ -881,7 +888,6 @@ type EmptyStateProps = {
   error: string | null;
   view: View;
   scanning: boolean;
-  brainSearch: boolean;
   hasFilters: boolean;
   missing: boolean;
   subfolders: number;
@@ -903,10 +909,6 @@ function EmptyState(props: EmptyStateProps) {
     heading = props.view.type === "folder" ? "No se pudo abrir la carpeta" : "No se pudo leer el catálogo";
     body = props.error ?? "";
     action = props.view.type === "folder" ? { label: "Elegir otra carpeta", run: props.onBrowse } : { label: "Reintentar", run: props.onRetry };
-  } else if (props.brainSearch) {
-    icon = <Brain size={30} />;
-    heading = "Sin resultados";
-    body = "La búsqueda visual no está conectada.";
   } else if (props.scanning) {
     icon = <Sparkles size={30} />;
     heading = "Indexando…";
