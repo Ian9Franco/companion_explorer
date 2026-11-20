@@ -766,6 +766,10 @@ code,
 }
 
 .sidebar-brand-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
   font-family: var(--font-serif);
   font-size: 17px;
   white-space: nowrap;
@@ -998,6 +1002,7 @@ code,
   flex: none;
   position: relative;
   z-index: 10;
+  container-type: inline-size;
   padding: 14px 22px 12px;
   border-bottom: 1px solid var(--border);
   background: linear-gradient(180deg, var(--bg) 0%, color-mix(in srgb, var(--bg) 88%, var(--surface-2)) 100%);
@@ -1008,12 +1013,13 @@ code,
   align-items: center;
   gap: 14px;
   min-height: 36px;
+  min-width: 0;
 }
 
 .toolbar-row:not(.is-filters) {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto minmax(min-content, 1fr);
-  column-gap: 14px;
+  flex-wrap: wrap;
+  column-gap: 12px;
+  row-gap: 10px;
 }
 
 html.is-brain .toolbar {
@@ -1029,12 +1035,15 @@ html.is-brain .toolbar {
 
 .toolbar-title {
   position: relative;
-  flex: 1;
-  min-width: 0;
+  flex: 1 1 16rem;
+  min-width: min(100%, 12rem);
+  overflow: hidden;
 }
 
 .toolbar-title-inner {
   min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
 }
 
 .toolbar-title h1 {
@@ -1084,15 +1093,20 @@ html.is-brain .toolbar {
   display: flex;
   align-items: center;
   gap: 8px;
-  flex: none;
-  justify-self: end;
+  flex: 1 1 auto;
+  min-width: 0;
+  justify-content: flex-end;
+  flex-wrap: wrap;
 }
 
 .search-field {
   display: flex;
   align-items: center;
   gap: 8px;
-  width: 290px;
+  width: auto;
+  flex: 1 1 10rem;
+  max-width: 290px;
+  min-width: 0;
   height: 36px;
   padding: 0 8px 0 11px;
   border-radius: 10px;
@@ -1106,7 +1120,7 @@ html.is-brain .toolbar {
   border-color: var(--accent-ring);
   box-shadow: 0 0 0 3px rgba(var(--accent-rgb), 0.1);
   color: var(--accent);
-  width: 340px;
+  max-width: 340px;
 }
 
 .search-field input {
@@ -1267,6 +1281,7 @@ html.is-brain .toolbar {
   display: flex;
   align-items: center;
   min-width: 0;
+  max-width: 100%;
   overflow: hidden;
 }
 
@@ -1274,14 +1289,24 @@ html.is-brain .toolbar {
   display: inline-flex;
   align-items: center;
   min-width: 0;
+  flex: 0 1 auto;
+  overflow: hidden;
+}
+
+.crumb:last-child {
+  flex: 1 1 auto;
 }
 
 .crumb button {
+  display: block;
+  max-width: 9rem;
   padding: 4px 6px;
   border-radius: 7px;
   color: var(--muted);
   font-size: 15px;
   white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .crumb button:hover {
@@ -1290,6 +1315,7 @@ html.is-brain .toolbar {
 }
 
 .crumb h1 {
+  min-width: 0;
   padding-left: 4px;
 }
 
@@ -3122,12 +3148,9 @@ html.is-brain .toolbar {
     padding: 0 8px;
   }
 
-  .search-field {
-    width: 200px;
-  }
-
+  .search-field,
   .search-field:focus-within {
-    width: 240px;
+    max-width: 220px;
   }
 
   .welcome-actions {
@@ -3230,7 +3253,45 @@ html.is-brain .shell {
   display: flex;
   align-items: center;
   gap: 8px;
+  flex: 0 1 auto;
+  min-width: 0;
   z-index: 2;
+}
+
+@container (max-width: 860px) {
+  .toolbar {
+    padding-inline: 14px;
+  }
+
+  .toolbar-title {
+    flex-basis: 100%;
+  }
+
+  .toolbar-title h1 {
+    font-size: 20px;
+  }
+
+  .toolbar-actions {
+    flex: 1 1 auto;
+  }
+
+  .search-field,
+  .search-field:focus-within {
+    max-width: none;
+    min-width: 0;
+  }
+
+  .search-field kbd {
+    display: none;
+  }
+
+  .mode-switch-label {
+    display: none;
+  }
+
+  .crumb button {
+    max-width: 6.5rem;
+  }
 }
 
 .brain-status-pill {
