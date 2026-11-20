@@ -8,11 +8,13 @@ namespace CompanionExplorer.Api;
 public sealed class ModelBootstrapWorker : BackgroundService
 {
     private readonly ModelInstaller _installer;
+    private readonly EmbedderRegistry _registry;
     private readonly ILogger<ModelBootstrapWorker> _logger;
 
-    public ModelBootstrapWorker(ModelInstaller installer, ILogger<ModelBootstrapWorker> logger)
+    public ModelBootstrapWorker(ModelInstaller installer, EmbedderRegistry registry, ILogger<ModelBootstrapWorker> logger)
     {
         _installer = installer;
+        _registry = registry;
         _logger = logger;
     }
 
@@ -20,7 +22,11 @@ public sealed class ModelBootstrapWorker : BackgroundService
     {
         try
         {
-            var status = await _installer.EnsureDefaultBundleAsync(stoppingToken);
+            var settings = _registry.CurrentSettings;
+            var status = string.Equals(settings.Embedder, BrainSettings.EmbedderLocal, StringComparison.Ordinal)
+                ? await _installer.EnsureBundleAsync(settings.LocalBundleId, stoppingToken)
+                : await _installer.EnsureDefaultBundleAsync(stoppingToken);
+            _registry.Reload();
             _logger.LogInformation(
                 "Modelos visuales: {Phase} en {Directory} — {Message}",
                 status.Phase,

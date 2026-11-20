@@ -26,33 +26,56 @@ public sealed class ModelInstaller
         }
     }
 
-    public async Task<ModelInstallStatus> EnsureDefaultBundleAsync(CancellationToken cancellationToken = default)
+    public Task<ModelInstallStatus> EnsureDefaultBundleAsync(CancellationToken cancellationToken = default)
     {
-        lock (_gate)
-        {
-            if (_status.Phase is ModelInstallPhase.Ready or ModelInstallPhase.Downloading)
-                return _status;
-        }
-
         var manifest = ModelManifestIO.TryRead(ModelPaths.ManifestPath);
-        if (manifest is null || string.IsNullOrWhiteSpace(manifest.DefaultModelId))
+        var bundleId = manifest?.DefaultModelId;
+        if (string.IsNullOrWhiteSpace(bundleId))
         {
             var missing = BuildStatus(
                 ModelInstallPhase.NotConfigured,
                 null,
                 $"No hay manifest en {ModelPaths.ManifestPath}. El release debe incluir models/manifest.json.");
             SetStatus(missing);
+            return Task.FromResult(missing);
+        }
+
+        return EnsureBundleAsync(bundleId, cancellationToken);
+    }
+
+    public async Task<ModelInstallStatus> EnsureBundleAsync(string bundleId, CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(bundleId))
+            throw new ArgumentException("El id del bundle es obligatorio.", nameof(bundleId));
+
+        lock (_gate)
+        {
+            if (_status.Phase is ModelInstallPhase.Downloading)
+                return _status;
+            if (_status.Phase is ModelInstallPhase.Ready &&
+                string.Equals(_status.ActiveBundleId, bundleId, StringComparison.OrdinalIgnoreCase))
+                return _status;
+        }
+
+        var manifest = ModelManifestIO.TryRead(ModelPaths.ManifestPath);
+        if (manifest is null)
+        {
+            var missing = BuildStatus(
+                ModelInstallPhase.NotConfigured,
+                null,
+                $"No hay manifest en {ModelPaths.ManifestPath}.");
+            SetStatus(missing);
             return missing;
         }
 
         var bundle = manifest.Bundles.FirstOrDefault(b =>
-            string.Equals(b.Id, manifest.DefaultModelId, StringComparison.OrdinalIgnoreCase));
+            string.Equals(b.Id, bundleId, StringComparison.OrdinalIgnoreCase));
         if (bundle is null)
         {
             var bad = BuildStatus(
                 ModelInstallPhase.NotConfigured,
-                manifest.DefaultModelId,
-                $"El manifest no define el bundle «{manifest.DefaultModelId}».");
+                bundleId,
+                $"El manifest no define el bundle «{bundleId}».");
             SetStatus(bad);
             return bad;
         }

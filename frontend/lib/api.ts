@@ -39,6 +39,43 @@ export type BrainSearchResponse = {
   message: string;
 };
 
+export type BrainBundleOption = {
+  id: string;
+  label: string;
+  dimensions: number;
+  installed: boolean;
+};
+
+export type BrainProviderOption = {
+  id: string;
+  label: string;
+  implemented: boolean;
+  setupHint: string;
+};
+
+export type BrainProviderPrefs = {
+  providerId: string;
+  modelId: string;
+};
+
+export type BrainSettingsView = {
+  schemaVersion: number;
+  embedder: "local" | "provider" | string;
+  localBundleId: string;
+  provider: BrainProviderPrefs | null;
+  providerKeyConfigured: boolean;
+  providerImplemented: boolean;
+  settingsPath: string;
+  availableBundles: BrainBundleOption[];
+  providerOptions: BrainProviderOption[];
+};
+
+export type BrainSettingsPatch = {
+  embedder?: "local" | "provider" | string;
+  localBundleId?: string;
+  provider?: BrainProviderPrefs | null;
+};
+
 export type RootEntry = {
   name: string;
   path: string;
@@ -252,7 +289,12 @@ export const api = {
   brainSearch: (query: string, limit = 48, signal?: AbortSignal) => {
     const params = new URLSearchParams({ q: query.trim(), limit: String(limit) });
     return request<BrainSearchResponse>(`/brain/search?${params}`, { signal });
-  }
+  },
+
+  brainSettings: (signal?: AbortSignal) => request<BrainSettingsView>("/brain/settings", { signal }),
+
+  updateBrainSettings: (patch: BrainSettingsPatch) =>
+    request<BrainSettingsView>("/brain/settings", { method: "PUT", ...json(patch) })
 };
 
 export function catalogParams(view: View, filters: Filters): URLSearchParams {

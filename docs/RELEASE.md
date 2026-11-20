@@ -34,6 +34,7 @@ Variables opcionales (mismas que en desarrollo):
 - `COMPANION_BRAND` — `companion` o `fanger`
 - `COMPANION_DATA_DIR` — carpeta de `catalog.db` y caché
 - `COMPANION_INSTALL_DIR` — raíz del ZIP (override de dónde está `models/`)
+- `COMPANION_BRAIN_PROVIDER_API_KEY` — solo si en el futuro usás embedder «proveedor» con tu cuenta (Companion no la incluye)
 - `COMPANION_WEB_URL` — URL de la interfaz (solo si no usás `out/`)
 
 ## Armar el release a mano
