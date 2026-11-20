@@ -37,7 +37,9 @@ public sealed class BrainSearchService
     public BrainStatus GetStatus()
     {
         var install = _modelInstaller.CurrentStatus;
-        var modelId = _embedder.IsReady ? _embedder.Model.Id : install.ActiveBundleId ?? install.DefaultModelId;
+        var modelId = _embedder.Model.Id == NullEmbedder.PlaceholderModel.Id
+            ? install.ActiveBundleId ?? install.DefaultModelId
+            : _embedder.Model.Id;
 
         return new BrainStatus(
             Phase: "foundation",

@@ -17,12 +17,15 @@ public static class ModelPaths
         if (!string.IsNullOrWhiteSpace(configured))
             return Path.GetFullPath(configured.Trim());
 
-        var apiBase = AppContext.BaseDirectory.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
-        var parent = Directory.GetParent(apiBase)?.FullName;
-        if (!string.IsNullOrWhiteSpace(parent) && LooksLikeInstallRoot(parent))
-            return parent;
+        var current = new DirectoryInfo(AppContext.BaseDirectory);
+        for (var depth = 0; current is not null && depth < 8; depth++, current = current.Parent)
+        {
+            if (File.Exists(Path.Combine(current.FullName, ModelsFolderName, "manifest.json")))
+                return current.FullName;
+            if (LooksLikeInstallRoot(current.FullName))
+                return current.FullName;
+        }
 
-        // Desarrollo: misma carpeta de datos, subcarpeta models (un solo lugar, no el disco del usuario).
         return AppDataPaths.Resolve();
     }
 
