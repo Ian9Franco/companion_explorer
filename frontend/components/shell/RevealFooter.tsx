@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { motion } from "motion/react";
+import { AppUpdateInfo } from "../../lib/api";
 import { panelSpring } from "../../lib/motion";
 
 function IconGitHub({ size = 15 }: { size?: number }) {
@@ -12,34 +13,48 @@ function IconGitHub({ size = 15 }: { size?: number }) {
   );
 }
 
-function IconLinkedIn({ size = 14 }: { size?: number }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor" aria-hidden>
-      <path d="M20.45 20.45h-3.56v-5.57c0-1.33-.03-3.04-1.85-3.04-1.85 0-2.13 1.45-2.13 2.94v5.67H9.35V9h3.42v1.56h.05c.48-.9 1.65-1.85 3.4-1.85 3.64 0 4.31 2.39 4.31 5.5v6.24ZM5.34 7.43a2.06 2.06 0 1 1 0-4.12 2.06 2.06 0 0 1 0 4.12ZM7.12 20.45H3.55V9h3.57v11.45ZM22.22 0H1.77C.79 0 0 .77 0 1.72v20.56C0 23.23.79 24 1.77 24h20.45c.98 0 1.78-.77 1.78-1.72V1.72C24 .77 23.23 0 22.22 0Z" />
-    </svg>
-  );
-}
-
 const AUTHOR_WEB = "https://ian-pontorno-portfolio.vercel.app/";
-const AUTHOR_LINKEDIN = "https://www.linkedin.com/in/ian-franco-collada-pontorno";
 const AUTHOR_GITHUB = "https://github.com/Ian9Franco";
 const REPO = "https://github.com/Ian9Franco/companion_explorer";
 const LICENSE = "https://github.com/Ian9Franco/companion_explorer/blob/main/LICENSE";
 
 const NAV_LINKS = [
-  { label: "LinkedIn", href: AUTHOR_LINKEDIN, Icon: IconLinkedIn },
   { label: "Repositorio", href: REPO },
   { label: "Licencia MIT", href: LICENSE }
 ] as const;
 
+type RevealFooterProps = {
+  version: string | null;
+  update: AppUpdateInfo | null;
+  updating: boolean;
+  onUpdate: () => void;
+};
+
+function versionLabel(version: string | null): string | null {
+  if (!version) return null;
+  const trimmed = version.trim().replace(/^[vV]/, "");
+  return trimmed ? `v${trimmed}` : null;
+}
+
 /**
  * Pie oculto. Una franja en el borde inferior lo trae desde la derecha
  * hasta su lugar; al salir el cursor, se guarda otra vez.
+ * Si hay una versión nueva, el badge queda visible con la app abierta.
  */
-export function RevealFooter() {
+export function RevealFooter({ version, update, updating, onUpdate }: RevealFooterProps) {
   const [open, setOpen] = useState(false);
+  const installed = versionLabel(version);
+  const latest = versionLabel(update?.latest ?? null);
+  const available = Boolean(update?.updateAvailable && latest);
 
   return (
+    <>
+    {available && !open ? (
+      <button type="button" className="update-badge" onClick={onUpdate} disabled={updating} aria-live="polite">
+        <span className="update-badge-dot" aria-hidden />
+        {updating ? "Descargando…" : `Actualización ${latest}`}
+      </button>
+    ) : null}
     <div
       className={`footer-dock ${open ? "is-open" : ""}`}
       onPointerEnter={() => setOpen(true)}
@@ -72,12 +87,22 @@ export function RevealFooter() {
           </a>
           <span className="reveal-footer-dot" aria-hidden />
           <span className="reveal-footer-app">Companion Explorer</span>
+          {installed ? (
+            <span className="reveal-footer-version" title="Versión instalada">
+              {installed}
+            </span>
+          ) : null}
         </div>
 
         <nav className="reveal-footer-links" aria-label="Enlaces">
+          {available ? (
+            <button type="button" className="update-badge is-inline" onClick={onUpdate} disabled={updating}>
+              <span className="update-badge-dot" aria-hidden />
+              {updating ? "Descargando…" : `Actualizar a ${latest}`}
+            </button>
+          ) : null}
           {NAV_LINKS.map((link) => (
             <a key={link.href} href={link.href} target="_blank" rel="noreferrer" className="reveal-footer-link">
-              {"Icon" in link && link.Icon ? <link.Icon size={14} /> : null}
               <span>{link.label}</span>
             </a>
           ))}
@@ -95,5 +120,6 @@ export function RevealFooter() {
         </a>
       </motion.footer>
     </div>
+    </>
   );
 }
