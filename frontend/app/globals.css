@@ -3358,6 +3358,70 @@ html.is-brain .shell {
   height: 10px;
 }
 
+.update-badge {
+  position: fixed;
+  right: 16px;
+  bottom: 18px;
+  z-index: 49;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 30px;
+  padding: 0 12px 0 10px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--accent);
+  color: var(--accent-ink);
+  font-size: 12px;
+  font-weight: 680;
+  letter-spacing: -0.01em;
+  box-shadow: 0 8px 22px rgba(0, 0, 0, 0.22);
+  cursor: pointer;
+}
+
+.update-badge.is-inline {
+  position: static;
+  height: 28px;
+  box-shadow: none;
+}
+
+.update-badge:disabled {
+  opacity: 0.72;
+  cursor: progress;
+}
+
+.update-badge-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: currentColor;
+  box-shadow: 0 0 0 0 currentColor;
+  animation: update-pulse 1.8s ease-out infinite;
+}
+
+@keyframes update-pulse {
+  0% {
+    box-shadow: 0 0 0 0 color-mix(in srgb, currentColor 55%, transparent);
+  }
+  70% {
+    box-shadow: 0 0 0 7px transparent;
+  }
+  100% {
+    box-shadow: 0 0 0 0 transparent;
+  }
+}
+
+.reveal-footer-version {
+  padding: 2px 8px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  color: var(--fg);
+  font-size: 11px;
+  font-weight: 680;
+  letter-spacing: 0.02em;
+  font-variant-numeric: tabular-nums;
+}
+
 .reveal-footer {
   position: absolute;
   left: 0;

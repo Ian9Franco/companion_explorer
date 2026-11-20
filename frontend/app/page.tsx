@@ -220,9 +220,28 @@ export default function ExplorerPage() {
 
   useEffect(() => {
     if (status !== "online") return;
-    const controller = new AbortController();
-    api.appUpdate(controller.signal).then(setAppUpdate).catch(() => setAppUpdate(null));
-    return () => controller.abort();
+    let cancelled = false;
+    const check = () => {
+      api
+        .appUpdate()
+        .then((info) => {
+          if (!cancelled) setAppUpdate(info);
+        })
+        .catch(() => {
+          if (!cancelled) setAppUpdate((current) => current);
+        });
+    };
+    check();
+    const timer = window.setInterval(check, 30 * 60 * 1000);
+    const onVisible = () => {
+      if (document.visibilityState === "visible") check();
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    return () => {
+      cancelled = true;
+      window.clearInterval(timer);
+      document.removeEventListener("visibilitychange", onVisible);
+    };
   }, [status]);
 
   const installUpdate = useCallback(async () => {
@@ -829,10 +848,17 @@ export default function ExplorerPage() {
                 </AnimatePresence>
               </div>
             </div>
-            <RevealFooter />
           </motion.div>
         )}
       </AnimatePresence>
+      {status !== "connecting" ? (
+        <RevealFooter
+          version={appUpdate?.current ?? null}
+          update={appUpdate}
+          updating={updating}
+          onUpdate={() => void installUpdate()}
+        />
+      ) : null}
 
       <AnimatePresence onExitComplete={() => document.querySelector<HTMLElement>("[data-grid-root]")?.focus({ preventScroll: true })}>
         {viewerIndex !== null && source.getItem(viewerIndex) ? (
