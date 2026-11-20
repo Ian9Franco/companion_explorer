@@ -64,6 +64,7 @@ export type BrainSettingsView = {
   localBundleId: string;
   provider: BrainProviderPrefs | null;
   providerKeyConfigured: boolean;
+  providerKeyStoredOnDisk: boolean;
   providerImplemented: boolean;
   settingsPath: string;
   availableBundles: BrainBundleOption[];
@@ -74,6 +75,9 @@ export type BrainSettingsPatch = {
   embedder?: "local" | "provider" | string;
   localBundleId?: string;
   provider?: BrainProviderPrefs | null;
+  /** Solo escritura: nunca vuelve en GET. */
+  providerApiKey?: string;
+  clearProviderApiKey?: boolean;
 };
 
 export type RootEntry = {

@@ -18,6 +18,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, MotionConfig, motion } from "motion/react";
 import { FolderSearch, Layers, RefreshCw, SearchX, Sparkles, TriangleAlert } from "lucide-react";
 import {
+  BrainSettingsPatch,
+  BrainSettingsView,
   BrainStatus,
   Brand,
   CollectionInfo,
@@ -93,6 +95,7 @@ export default function ExplorerPage() {
   });
   const [brainMode, setBrainMode] = usePersistentState("companion.brain.v1", false);
   const [brainStatus, setBrainStatus] = useState<BrainStatus | null>(null);
+  const [brainConfig, setBrainConfig] = useState<BrainSettingsView | null>(null);
 
   const [kind, setKind] = useState<"all" | MediaKind>("all");
   const [extensions, setExtensions] = useState<string[]>([]);
@@ -130,18 +133,39 @@ export default function ExplorerPage() {
     return () => root.classList.remove("is-brain");
   }, [brainMode]);
 
+  const refreshBrain = useCallback(async () => {
+    const [nextStatus, nextConfig] = await Promise.all([api.brainStatus(), api.brainSettings()]);
+    setBrainStatus(nextStatus);
+    setBrainConfig(nextConfig);
+  }, []);
+
   useEffect(() => {
     if (!brainMode || status !== "online") {
       setBrainStatus(null);
+      setBrainConfig(null);
       return;
     }
     const controller = new AbortController();
-    api
-      .brainStatus(controller.signal)
-      .then(setBrainStatus)
-      .catch(() => setBrainStatus(null));
+    Promise.all([api.brainStatus(controller.signal), api.brainSettings(controller.signal)])
+      .then(([nextStatus, nextConfig]) => {
+        setBrainStatus(nextStatus);
+        setBrainConfig(nextConfig);
+      })
+      .catch(() => {
+        setBrainStatus(null);
+        setBrainConfig(null);
+      });
     return () => controller.abort();
   }, [brainMode, status]);
+
+  const applyBrainSettings = useCallback(
+    async (patch: BrainSettingsPatch) => {
+      const view = await api.updateBrainSettings(patch);
+      setBrainConfig(view);
+      await refreshBrain();
+    },
+    [refreshBrain]
+  );
 
   const setMode = useCallback(
     (on: boolean) => {
@@ -685,6 +709,8 @@ export default function ExplorerPage() {
                 canAddFolderAsLibrary={canAddFolderAsLibrary}
                 brainMode={brainMode}
                 brainStatus={brainStatus}
+                brainConfig={brainConfig}
+                onBrainSettingsPatch={applyBrainSettings}
                 onBrainMode={setMode}
                 onSearchInput={setSearchInput}
                 onFilters={patchFilters}

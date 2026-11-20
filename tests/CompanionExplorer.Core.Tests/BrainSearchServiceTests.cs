@@ -9,7 +9,9 @@ public class BrainSearchServiceTests
         var dataDir = Path.Combine(Path.GetTempPath(), "companion-brain-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(dataDir);
         var store = new BrainSettingsStore(dataDir);
-        var registry = new EmbedderRegistry(store);
+        var secrets = new BrainSecretStore(dataDir);
+        var credentials = new BrainCredentialResolver(secrets);
+        var registry = new EmbedderRegistry(store, credentials);
         return new BrainSearchService(registry, new ModelInstaller());
     }
     [Fact]

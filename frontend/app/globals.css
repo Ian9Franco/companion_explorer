@@ -3233,6 +3233,91 @@ html.is-brain .shell {
   text-overflow: ellipsis;
 }
 
+.brain-settings-popover .popover-panel {
+  width: min(360px, calc(100vw - 24px));
+}
+
+.brain-settings {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.brain-settings-lead {
+  margin: 0;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.brain-settings-mode {
+  display: flex;
+  gap: 8px;
+}
+
+.brain-settings-radio {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.brain-settings-radio.is-active {
+  border-color: var(--accent);
+  background: var(--accent-bg);
+}
+
+.brain-settings-radio input {
+  accent-color: var(--accent);
+}
+
+.brain-settings-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.brain-settings-field select,
+.brain-settings-field input {
+  width: 100%;
+  padding: 8px 10px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+}
+
+.brain-settings-hint {
+  margin: 0;
+  color: var(--subtle);
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+.brain-settings-error {
+  margin: 0;
+  color: #e85d5d;
+  font-size: 12px;
+}
+
+.brain-settings-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding-top: 4px;
+}
+
+.brain-settings-clear {
+  align-self: flex-start;
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

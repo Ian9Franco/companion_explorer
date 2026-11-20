@@ -6,13 +6,15 @@ namespace CompanionExplorer.Core.Search;
 public sealed class EmbedderRegistry : IEmbedder
 {
     private readonly BrainSettingsStore _settingsStore;
+    private readonly BrainCredentialResolver _credentials;
     private readonly object _gate = new();
     private IEmbedder _active = new NullEmbedder();
     private BrainSettings _settings;
 
-    public EmbedderRegistry(BrainSettingsStore settingsStore)
+    public EmbedderRegistry(BrainSettingsStore settingsStore, BrainCredentialResolver credentials)
     {
         _settingsStore = settingsStore;
+        _credentials = credentials;
         _settings = settingsStore.Load();
         Reload();
     }
@@ -63,7 +65,7 @@ public sealed class EmbedderRegistry : IEmbedder
 
         if (string.Equals(settings.Embedder, BrainSettings.EmbedderProvider, StringComparison.Ordinal))
         {
-            next = new ProviderEmbedderPlaceholder(settings.Provider, BrainProviderCredentials.HasApiKey());
+            next = new ProviderEmbedderPlaceholder(settings.Provider, _credentials.HasApiKey());
         }
         else
         {

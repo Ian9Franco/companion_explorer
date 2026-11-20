@@ -5,15 +5,21 @@ public sealed class BrainConfigurationService
     private readonly BrainSettingsStore _store;
     private readonly EmbedderRegistry _registry;
     private readonly ModelInstaller _installer;
+    private readonly BrainSecretStore _secrets;
+    private readonly BrainCredentialResolver _credentials;
 
     public BrainConfigurationService(
         BrainSettingsStore store,
         EmbedderRegistry registry,
-        ModelInstaller installer)
+        ModelInstaller installer,
+        BrainSecretStore secrets,
+        BrainCredentialResolver credentials)
     {
         _store = store;
         _registry = registry;
         _installer = installer;
+        _secrets = secrets;
+        _credentials = credentials;
     }
 
     public BrainSettingsView GetView()
@@ -36,7 +42,8 @@ public sealed class BrainConfigurationService
             Embedder: settings.Embedder,
             LocalBundleId: settings.LocalBundleId,
             Provider: settings.Provider,
-            ProviderKeyConfigured: BrainProviderCredentials.HasApiKey(),
+            ProviderKeyConfigured: _credentials.HasApiKey(),
+            ProviderKeyStoredOnDisk: _credentials.KeyStoredOnDisk,
             ProviderImplemented: providerOption?.Implemented ?? false,
             SettingsPath: _store.SettingsPath,
             AvailableBundles: bundles,
@@ -56,6 +63,11 @@ public sealed class BrainConfigurationService
 
         if (!BundleExists(localBundleId))
             throw new ArgumentException($"No existe el bundle «{localBundleId}».", nameof(patch));
+
+        if (patch.ClearProviderApiKey == true)
+            _secrets.ClearApiKey();
+        else if (!string.IsNullOrWhiteSpace(patch.ProviderApiKey))
+            _secrets.SaveApiKey(patch.ProviderApiKey);
 
         BrainSettings next;
         if (string.Equals(embedder, BrainSettings.EmbedderProvider, StringComparison.Ordinal))

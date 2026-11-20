@@ -12,6 +12,7 @@ public sealed record BrainSettingsView(
     string LocalBundleId,
     BrainProviderPrefs? Provider,
     bool ProviderKeyConfigured,
+    bool ProviderKeyStoredOnDisk,
     bool ProviderImplemented,
     string SettingsPath,
     IReadOnlyList<BrainBundleOption> AvailableBundles,
@@ -20,4 +21,6 @@ public sealed record BrainSettingsView(
 public sealed record BrainSettingsPatch(
     string? Embedder,
     string? LocalBundleId,
-    BrainProviderPrefs? Provider);
+    BrainProviderPrefs? Provider,
+    string? ProviderApiKey,
+    bool? ClearProviderApiKey);

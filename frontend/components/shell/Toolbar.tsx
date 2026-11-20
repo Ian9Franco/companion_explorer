@@ -16,9 +16,11 @@ import {
   Rows3,
   ScanLine,
   Search,
+  Settings2,
   X
 } from "lucide-react";
-import { BrainStatus, CatalogSummary, Filters, FolderListing, MediaKind, SortKey } from "../../lib/api";
+import { BrainSettingsPatch, BrainSettingsView, BrainStatus, CatalogSummary, Filters, FolderListing, MediaKind, SortKey } from "../../lib/api";
+import { BrainSettingsMenu } from "./BrainSettingsMenu";
 import { breadcrumbLabel, formatBytes, formatCount } from "../../lib/format";
 import { ease, panelSpring, spring, unfold } from "../../lib/motion";
 import { Density, FolderLayout } from "../grid/MediaGrid";
@@ -65,6 +67,8 @@ type ToolbarProps = {
   canAddFolderAsLibrary: boolean;
   brainMode: boolean;
   brainStatus: BrainStatus | null;
+  brainConfig: BrainSettingsView | null;
+  onBrainSettingsPatch: (patch: BrainSettingsPatch) => Promise<void>;
   onBrainMode: (on: boolean) => void;
   onSearchInput: (value: string) => void;
   onFilters: (patch: Partial<Filters>) => void;
@@ -186,6 +190,27 @@ export function Toolbar(props: ToolbarProps) {
                   ? "Búsqueda visual · descargando…"
                   : "Búsqueda visual · preparación"}
             </span>
+          ) : null}
+          {props.brainMode && props.brainConfig ? (
+            <Popover
+              className="brain-settings-popover"
+              align="end"
+              trigger={({ open, toggle }) => (
+                <button
+                  type="button"
+                  className={`icon-button ${open ? "is-active" : ""}`}
+                  onClick={toggle}
+                  aria-label="Ajustes de búsqueda visual"
+                  title="Motor y proveedor"
+                >
+                  <Settings2 size={16} />
+                </button>
+              )}
+            >
+              {(close) => (
+                <BrainSettingsMenu config={props.brainConfig!} onSave={props.onBrainSettingsPatch} onClose={close} />
+              )}
+            </Popover>
           ) : null}
         </div>
 

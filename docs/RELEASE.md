@@ -8,7 +8,7 @@ Distribución **portable** para Windows: un ZIP con el núcleo API, la ventana W
 - [WebView2 Runtime](https://developer.microsoft.com/microsoft-edge/webview2/) (en muchas PCs ya viene con Edge).
 - No hace falta instalar .NET por separado: el release se publica **self-contained**.
 
-Los datos (`catalog.db`, miniaturas) van a `%LocalAppData%\CompanionExplorer`. Los **modelos ONNX** van en la carpeta **`models/`** al lado del ZIP (misma raíz que `Start-Companion.bat`). Companion los verifica al arrancar y, cuando el manifest tenga URLs, los **descarga solo** ahí; el usuario no busca archivos por el disco. El pipeline de release puede **prefetch** los `.onnx` en el build para entregar el ZIP ya completo.
+Los datos (`catalog.db`, miniaturas) van a `%LocalAppData%\CompanionExplorer`. Las preferencias de cerebro van en `brain.settings.json`; la **API key del proveedor** (si la configurás) en `brain.provider.key`, cifrada con **DPAPI** del usuario de Windows — no hace falta volver a pegarla en cada apertura. La variable `COMPANION_BRAIN_PROVIDER_API_KEY` sigue pudiendo usarse como override puntual. Los **modelos ONNX** van en la carpeta **`models/`** al lado del ZIP (misma raíz que `Start-Companion.bat`). Companion los verifica al arrancar y, cuando el manifest tenga URLs, los **descarga solo** ahí; el usuario no busca archivos por el disco. El pipeline de release puede **prefetch** los `.onnx` en el build para entregar el ZIP ya completo.
 
 ## Usar el ZIP
 
