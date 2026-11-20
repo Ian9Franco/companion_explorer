@@ -7,7 +7,7 @@ public class BrainSearchServiceTests
     [Fact]
     public void Estado_inicial_sin_indice_ni_embedder()
     {
-        var service = new BrainSearchService(new NullEmbedder());
+        var service = new BrainSearchService(new NullEmbedder(), new ModelInstaller());
         var status = service.GetStatus();
 
         Assert.Equal("foundation", status.Phase);
@@ -21,7 +21,7 @@ public class BrainSearchServiceTests
     [Fact]
     public async Task Busqueda_devuelve_lista_vacia_y_mensaje()
     {
-        var service = new BrainSearchService(new NullEmbedder());
+        var service = new BrainSearchService(new NullEmbedder(), new ModelInstaller());
         var response = await service.SearchAsync("atardecer en la playa", 24, CancellationToken.None);
 
         Assert.Equal("atardecer en la playa", response.Query);

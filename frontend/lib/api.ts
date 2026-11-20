@@ -20,6 +20,8 @@ export type BrainStatus = {
   embedderReady: boolean;
   modelId: string | null;
   indexedVectors: number;
+  modelsDirectory: string;
+  modelInstallPhase: string;
   message: string;
 };
 

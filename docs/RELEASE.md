@@ -8,7 +8,7 @@ Distribución **portable** para Windows: un ZIP con el núcleo API, la ventana W
 - [WebView2 Runtime](https://developer.microsoft.com/microsoft-edge/webview2/) (en muchas PCs ya viene con Edge).
 - No hace falta instalar .NET por separado: el release se publica **self-contained**.
 
-Los datos (`catalog.db`, miniaturas) van a `%LocalAppData%\CompanionExplorer`.
+Los datos (`catalog.db`, miniaturas) van a `%LocalAppData%\CompanionExplorer`. Los **modelos ONNX** van en la carpeta **`models/`** al lado del ZIP (misma raíz que `Start-Companion.bat`). Companion los verifica al arrancar y, cuando el manifest tenga URLs, los **descarga solo** ahí; el usuario no busca archivos por el disco. El pipeline de release puede **prefetch** los `.onnx` en el build para entregar el ZIP ya completo.
 
 ## Usar el ZIP
 
@@ -27,11 +27,13 @@ Contenido de la carpeta:
 | `api/CompanionExplorer.Api.exe` | Núcleo HTTP |
 | `out/` | Interfaz exportada de Next.js |
 | `brands/` | Marca activa (`companion` por defecto) |
+| `models/` | Manifest y archivos ONNX de búsqueda visual (junto al programa, no en AppData) |
 
 Variables opcionales (mismas que en desarrollo):
 
 - `COMPANION_BRAND` — `companion` o `fanger`
 - `COMPANION_DATA_DIR` — carpeta de `catalog.db` y caché
+- `COMPANION_INSTALL_DIR` — raíz del ZIP (override de dónde está `models/`)
 - `COMPANION_WEB_URL` — URL de la interfaz (solo si no usás `out/`)
 
 ## Armar el release a mano

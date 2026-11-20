@@ -6,7 +6,9 @@ public sealed record BrainStatus(
     bool EmbedderReady,
     string? ModelId,
     int IndexedVectors,
-    string Message);
+    string ModelsDirectory,
+    string ModelInstallPhase,
+    string? Message);
 
 public sealed record BrainSearchHit(string Path, double Score);
 
@@ -24,19 +26,39 @@ public sealed record BrainSearchResponse(
 public sealed class BrainSearchService
 {
     private readonly IEmbedder _embedder;
+    private readonly ModelInstaller _modelInstaller;
 
-    public BrainSearchService(IEmbedder embedder)
+    public BrainSearchService(IEmbedder embedder, ModelInstaller modelInstaller)
     {
         _embedder = embedder;
+        _modelInstaller = modelInstaller;
     }
 
-    public BrainStatus GetStatus() => new(
-        Phase: "foundation",
-        IndexReady: false,
-        EmbedderReady: _embedder.IsReady,
-        ModelId: _embedder.Model.Id,
-        IndexedVectors: 0,
-        Message: "Base lista: API y contrato de embeddings. Siguen el índice, el worker y el modelo ONNX.");
+    public BrainStatus GetStatus()
+    {
+        var install = _modelInstaller.CurrentStatus;
+        var modelId = _embedder.IsReady ? _embedder.Model.Id : install.ActiveBundleId ?? install.DefaultModelId;
+
+        return new BrainStatus(
+            Phase: "foundation",
+            IndexReady: false,
+            EmbedderReady: _embedder.IsReady,
+            ModelId: modelId,
+            IndexedVectors: 0,
+            ModelsDirectory: install.ModelsDirectory,
+            ModelInstallPhase: install.Phase.ToString().ToLowerInvariant(),
+            Message: CombineMessages(install.Message,
+                "Los modelos viven junto al programa (carpeta models/), no en AppData."));
+    }
+
+    private static string CombineMessages(string primary, string secondary)
+    {
+        if (string.IsNullOrWhiteSpace(primary))
+            return secondary;
+        if (primary.Contains("AppData", StringComparison.Ordinal))
+            return primary;
+        return $"{primary} {secondary}";
+    }
 
     public async Task<BrainSearchResponse> SearchAsync(string query, int limit, CancellationToken cancellationToken)
     {

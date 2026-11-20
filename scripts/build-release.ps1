@@ -47,6 +47,9 @@ dotnet publish $hostProject -c Release -r $Runtime --self-contained true -o $sta
 
 Write-Host "Copiando brands, interfaz y launcher"
 Copy-Item -Recurse (Join-Path $repoRoot "brands") (Join-Path $stage "brands")
+if (Test-Path (Join-Path $repoRoot "models")) {
+    Copy-Item -Recurse (Join-Path $repoRoot "models") (Join-Path $stage "models")
+}
 Copy-Item -Recurse (Join-Path $repoRoot "frontend/out") (Join-Path $stage "out")
 Copy-Item (Join-Path $PSScriptRoot "Start-Companion.ps1") (Join-Path $stage "Start-Companion.ps1")
 Copy-Item (Join-Path $PSScriptRoot "Start-Companion.bat") (Join-Path $stage "Start-Companion.bat")

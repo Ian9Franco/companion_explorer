@@ -29,7 +29,9 @@ var brands = BrandStore.Load(AppContext.BaseDirectory, brandId);
 builder.Services.AddSingleton(brands);
 builder.Services.AddSingleton<FolderExplorer>();
 builder.Services.AddSingleton<IEmbedder, NullEmbedder>();
+builder.Services.AddSingleton<ModelInstaller>();
 builder.Services.AddSingleton<BrainSearchService>();
+builder.Services.AddHostedService<ModelBootstrapWorker>();
 
 // Un solo directorio de datos, fuera de las carpetas del usuario: catalog.db y cache/thumbs.
 var dataDirectory = AppDataPaths.Resolve(builder.Configuration["COMPANION_DATA_DIR"]);

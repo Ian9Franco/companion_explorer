@@ -176,8 +176,15 @@ export function Toolbar(props: ToolbarProps) {
           </button>
           </div>
           {props.brainMode && props.brainStatus ? (
-            <span className="brain-status-pill" title={props.brainStatus.message}>
-              Búsqueda visual · preparación
+            <span
+              className="brain-status-pill"
+              title={`${props.brainStatus.message}\n${props.brainStatus.modelsDirectory}`}
+            >
+              {props.brainStatus.modelInstallPhase === "ready"
+                ? "Búsqueda visual · modelo listo"
+                : props.brainStatus.modelInstallPhase === "downloading"
+                  ? "Búsqueda visual · descargando…"
+                  : "Búsqueda visual · preparación"}
             </span>
           ) : null}
         </div>
