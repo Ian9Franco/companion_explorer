@@ -61,6 +61,9 @@ public sealed class FolderExplorer
 {
     public const int MaxEnumeratedFiles = 25_000;
 
+    /// <summary>Raíz del Explorador de Windows para equipos y recursos compartidos (solo UNC).</summary>
+    public const string WindowsNetworkRoot = @"\\";
+
     public IReadOnlyList<RootEntry> GetRoots(string? extraRootPath = null)
     {
         var roots = new List<RootEntry>();
@@ -140,6 +143,9 @@ public sealed class FolderExplorer
                 // Ignore drives that fail readiness checks
             }
         }
+
+        if (OperatingSystem.IsWindows() && seen.Add(WindowsNetworkRoot))
+            roots.Add(new RootEntry("Red", WindowsNetworkRoot, "network"));
 
         return roots;
     }
@@ -368,13 +374,70 @@ public sealed class FolderExplorer
     public static string NormalizePath(string rawPath)
     {
         var trimmed = rawPath.Trim().Trim('"');
+        if (string.IsNullOrWhiteSpace(trimmed))
+            throw new ArgumentException("La ruta está vacía.", nameof(rawPath));
+
+        if (OperatingSystem.IsWindows())
+        {
+            if (trimmed.StartsWith("//", StringComparison.Ordinal))
+                trimmed = WindowsNetworkRoot + trimmed[2..].Replace('/', '\\');
+
+            if (IsNetworkRoot(trimmed))
+                return WindowsNetworkRoot;
+
+            if (trimmed.StartsWith(WindowsNetworkRoot, StringComparison.Ordinal))
+            {
+                trimmed = trimmed.Replace('/', '\\');
+                while (trimmed.Length > 2 && trimmed.EndsWith('\\'))
+                    trimmed = trimmed[..^1];
+
+                try
+                {
+                    return Path.GetFullPath(trimmed);
+                }
+                catch (ArgumentException)
+                {
+                    return trimmed;
+                }
+            }
+        }
+
         return Path.GetFullPath(trimmed);
     }
 
     private static string GetDisplayName(string fullPath)
     {
+        if (OperatingSystem.IsWindows() && IsNetworkRoot(fullPath))
+            return "Red";
+
+        if (OperatingSystem.IsWindows() && fullPath.StartsWith(WindowsNetworkRoot, StringComparison.Ordinal))
+        {
+            var segments = SplitUncSegments(fullPath);
+            if (segments.Count > 0)
+                return segments[^1];
+        }
+
         var name = Path.GetFileName(Path.TrimEndingDirectorySeparator(fullPath));
         return string.IsNullOrEmpty(name) ? fullPath : name;
+    }
+
+    private static bool IsNetworkRoot(string path)
+    {
+        if (!OperatingSystem.IsWindows())
+            return false;
+
+        var normalized = path.Trim().Trim('"').Replace('/', '\\').TrimEnd('\\');
+        return normalized is "\\" or "\\\\";
+    }
+
+    private static List<string> SplitUncSegments(string uncPath)
+    {
+        var trimmed = uncPath.TrimEnd('\\');
+        if (IsNetworkRoot(uncPath))
+            return [];
+
+        var inner = trimmed.StartsWith(WindowsNetworkRoot, StringComparison.Ordinal) ? trimmed[2..] : trimmed;
+        return inner.Split('\\', StringSplitOptions.RemoveEmptyEntries).ToList();
     }
 
     private static IReadOnlyList<BreadcrumbEntry> BuildBreadcrumbs(DirectoryInfo directory)

@@ -55,6 +55,12 @@ public partial class MainWindow : Window
     private void OnWebMessageReceived(object? sender, CoreWebView2WebMessageReceivedEventArgs e)
     {
         var message = e.TryGetWebMessageAsString();
+        if (string.Equals(message, "quit-for-update", StringComparison.Ordinal))
+        {
+            Application.Current.Shutdown();
+            return;
+        }
+
         if (!string.Equals(message, "pick-folder", StringComparison.Ordinal))
             return;
 

@@ -6,12 +6,88 @@
  * resumen. El resumen le saca el orden, que no cambia los conteos.
  */
 
+export type AppUpdateInfo = {
+  current: string;
+  latest: string | null;
+  updateAvailable: boolean;
+  downloadUrl: string | null;
+  assetName: string | null;
+  releaseNotesUrl: string | null;
+  message: string;
+};
+
 export type Brand = {
   id: string;
   productName: string;
   windowTitle: string;
   preloadTitle: string;
   logoUrl: string;
+};
+
+export type BrainStatus = {
+  phase: string;
+  indexReady: boolean;
+  embedderReady: boolean;
+  modelId: string | null;
+  indexedVectors: number;
+  modelsDirectory: string;
+  modelInstallPhase: string;
+  message: string;
+};
+
+export type BrainSearchHit = {
+  path: string;
+  score: number;
+};
+
+export type BrainSearchResponse = {
+  query: string;
+  phase: string;
+  indexReady: boolean;
+  embedderReady: boolean;
+  results: BrainSearchHit[];
+  message: string;
+};
+
+export type BrainBundleOption = {
+  id: string;
+  label: string;
+  dimensions: number;
+  installed: boolean;
+};
+
+export type BrainProviderOption = {
+  id: string;
+  label: string;
+  implemented: boolean;
+  setupHint: string;
+};
+
+export type BrainProviderPrefs = {
+  providerId: string;
+  modelId: string;
+};
+
+export type BrainSettingsView = {
+  schemaVersion: number;
+  embedder: "local" | "provider" | string;
+  localBundleId: string;
+  provider: BrainProviderPrefs | null;
+  providerKeyConfigured: boolean;
+  providerKeyStoredOnDisk: boolean;
+  providerImplemented: boolean;
+  settingsPath: string;
+  availableBundles: BrainBundleOption[];
+  providerOptions: BrainProviderOption[];
+};
+
+export type BrainSettingsPatch = {
+  embedder?: "local" | "provider" | string;
+  localBundleId?: string;
+  provider?: BrainProviderPrefs | null;
+  /** Solo escritura: nunca vuelve en GET. */
+  providerApiKey?: string;
+  clearProviderApiKey?: boolean;
 };
 
 export type RootEntry = {
@@ -174,6 +250,10 @@ const json = (body: unknown): RequestInit => ({ body: JSON.stringify(body) });
 export const api = {
   brand: (signal?: AbortSignal) => request<Brand>("/brand", { signal }),
 
+  appUpdate: (signal?: AbortSignal) => request<AppUpdateInfo>("/app/update", { signal }),
+
+  downloadAppUpdate: () => request<{ started: boolean; installer: string }>("/app/update/download", { method: "POST" }),
+
   roots: async (signal?: AbortSignal) =>
     (await request<{ roots: RootEntry[] }>("/roots", { signal })).roots ?? [],
 
@@ -220,7 +300,19 @@ export const api = {
     request<{ added: number; collection: CollectionInfo }>(`/collections/${id}/items`, { method: "POST", ...json({ paths }) }),
 
   removeFromCollection: (id: number, paths: string[]) =>
-    request<{ removed: number; collection: CollectionInfo }>(`/collections/${id}/items/remove`, { method: "POST", ...json({ paths }) })
+    request<{ removed: number; collection: CollectionInfo }>(`/collections/${id}/items/remove`, { method: "POST", ...json({ paths }) }),
+
+  brainStatus: (signal?: AbortSignal) => request<BrainStatus>("/brain/status", { signal }),
+
+  brainSearch: (query: string, limit = 48, signal?: AbortSignal) => {
+    const params = new URLSearchParams({ q: query.trim(), limit: String(limit) });
+    return request<BrainSearchResponse>(`/brain/search?${params}`, { signal });
+  },
+
+  brainSettings: (signal?: AbortSignal) => request<BrainSettingsView>("/brain/settings", { signal }),
+
+  updateBrainSettings: (patch: BrainSettingsPatch) =>
+    request<BrainSettingsView>("/brain/settings", { method: "PUT", ...json(patch) })
 };
 
 export function catalogParams(view: View, filters: Filters): URLSearchParams {

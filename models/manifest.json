@@ -1,0 +1,32 @@
+{
+  "defaultModelId": "companion-brain-v1",
+  "bundles": [
+    {
+      "id": "companion-brain-v1",
+      "label": "Búsqueda visual SigLIP (base)",
+      "dimensions": 768,
+      "files": [
+        {
+          "name": "image.onnx",
+          "url": "",
+          "sha256": ""
+        },
+        {
+          "name": "text.onnx",
+          "url": "",
+          "sha256": ""
+        },
+        {
+          "name": "vocab.json",
+          "url": "",
+          "sha256": ""
+        },
+        {
+          "name": "merges.txt",
+          "url": "",
+          "sha256": ""
+        }
+      ]
+    }
+  ]
+}

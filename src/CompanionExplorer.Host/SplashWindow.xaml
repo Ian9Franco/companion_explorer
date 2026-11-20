@@ -1,0 +1,18 @@
+<Window x:Class="CompanionExplorer.Host.SplashWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Companion Explorer"
+        Width="340" Height="148"
+        WindowStyle="None"
+        ResizeMode="NoResize"
+        WindowStartupLocation="CenterScreen"
+        ShowInTaskbar="True"
+        Background="#111318"
+        Topmost="True">
+    <Border BorderBrush="#2A3140" BorderThickness="1" CornerRadius="16" Background="#161A22" Padding="22,18">
+        <StackPanel VerticalAlignment="Center">
+            <TextBlock Text="Abriendo Companion" Foreground="#F4F1EA" FontSize="18" FontWeight="SemiBold"/>
+            <TextBlock Text="Preparando el núcleo…" Margin="0,8,0,0" Foreground="#9AA3B5" FontSize="13"/>
+        </StackPanel>
+    </Border>
+</Window>

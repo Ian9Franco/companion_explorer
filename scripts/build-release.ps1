@@ -1,6 +1,7 @@
 param(
     [string]$OutputDir = "",
     [string]$Runtime = "win-x64",
+    [string]$Version = "0.0.0",
     [switch]$SkipFrontendInstall
 )
 
@@ -39,18 +40,25 @@ New-Item -ItemType Directory -Path $stage | Out-Null
 $apiStage = Join-Path $stage "api"
 New-Item -ItemType Directory -Path $apiStage | Out-Null
 
+$versionText = $Version.Trim().TrimStart("v", "V")
+if ([string]::IsNullOrWhiteSpace($versionText)) { $versionText = "0.0.0" }
+
 Write-Host "Publicando API en $apiStage"
-dotnet publish $apiProject -c Release -r $Runtime --self-contained true -o $apiStage
+dotnet publish $apiProject -c Release -r $Runtime --self-contained true -o $apiStage -p:Version=$versionText
 
 Write-Host "Publicando ventana en $stage"
-dotnet publish $hostProject -c Release -r $Runtime --self-contained true -o $stage
+dotnet publish $hostProject -c Release -r $Runtime --self-contained true -o $stage -p:Version=$versionText
 
-Write-Host "Copiando brands, interfaz y launcher"
+Set-Content -Path (Join-Path $stage "version.txt") -Value $versionText -NoNewline
+Set-Content -Path (Join-Path $apiStage "version.txt") -Value $versionText -NoNewline
+
+Write-Host "Copiando brands e interfaz"
 Copy-Item -Recurse (Join-Path $repoRoot "brands") (Join-Path $stage "brands")
+if (Test-Path (Join-Path $repoRoot "models")) {
+    Copy-Item -Recurse (Join-Path $repoRoot "models") (Join-Path $stage "models")
+}
 Copy-Item -Recurse (Join-Path $repoRoot "frontend/out") (Join-Path $stage "out")
-Copy-Item (Join-Path $PSScriptRoot "Start-Companion.ps1") (Join-Path $stage "Start-Companion.ps1")
-Copy-Item (Join-Path $PSScriptRoot "Start-Companion.bat") (Join-Path $stage "Start-Companion.bat")
 
 Write-Host ""
 Write-Host "Listo: $stage"
-Write-Host "Para probar: Start-Companion.bat"
+Write-Host "Abrí CompanionExplorer.Host.exe (sin consola). El instalador arma el acceso directo."

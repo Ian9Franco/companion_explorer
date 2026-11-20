@@ -93,6 +93,20 @@ public class FolderExplorerTests
     }
 
     [Fact]
+    public void Raiz_de_red_y_normaliza_rutas_unc_en_Windows()
+    {
+        if (!OperatingSystem.IsWindows())
+            return;
+
+        Assert.Equal(FolderExplorer.WindowsNetworkRoot, FolderExplorer.NormalizePath(@"\\"));
+        Assert.Equal(FolderExplorer.WindowsNetworkRoot, FolderExplorer.NormalizePath("//"));
+
+        var explorer = new FolderExplorer();
+        var roots = explorer.GetRoots();
+        Assert.Contains(roots, r => r.Kind == "network" && r.Name == "Red" && r.Path == FolderExplorer.WindowsNetworkRoot);
+    }
+
+    [Fact]
     public void Ordena_por_tamano_y_nombre()
     {
         using var sandbox = new TempMediaFolder();

@@ -16,8 +16,12 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, MotionConfig, motion } from "motion/react";
-import { Brain, FolderSearch, Layers, RefreshCw, SearchX, Sparkles, TriangleAlert } from "lucide-react";
+import { FolderSearch, Layers, RefreshCw, SearchX, Sparkles, TriangleAlert } from "lucide-react";
 import {
+  BrainSettingsPatch,
+  BrainSettingsView,
+  BrainStatus,
+  AppUpdateInfo,
   Brand,
   CollectionInfo,
   DateRange,
@@ -91,8 +95,8 @@ export default function ExplorerPage() {
     desc: true
   });
   const [brainMode, setBrainMode] = usePersistentState("companion.brain.v1", false);
-  const [brainLab, setBrainLab] = usePersistentState("companion.brain.lab.v1", false);
-  const brainDeck = brainMode && !brainLab;
+  const [brainStatus, setBrainStatus] = useState<BrainStatus | null>(null);
+  const [brainConfig, setBrainConfig] = useState<BrainSettingsView | null>(null);
 
   const [kind, setKind] = useState<"all" | MediaKind>("all");
   const [extensions, setExtensions] = useState<string[]>([]);
@@ -114,6 +118,8 @@ export default function ExplorerPage() {
   const [collectionTarget, setCollectionTarget] = useState<string[] | null>(null);
   const [confirm, setConfirm] = useState<ConfirmRequest | null>(null);
   const [nativeAvailable, setNativeAvailable] = useState(false);
+  const [appUpdate, setAppUpdate] = useState<AppUpdateInfo | null>(null);
+  const [updating, setUpdating] = useState(false);
   const { toasts, show: toast, dismiss } = useToasts();
   const searchRef = useRef<HTMLInputElement | null>(null);
 
@@ -127,9 +133,42 @@ export default function ExplorerPage() {
   useEffect(() => {
     const root = document.documentElement;
     root.classList.toggle("is-brain", brainMode);
-    root.classList.toggle("is-brain-lab", brainMode && brainLab);
-    return () => root.classList.remove("is-brain", "is-brain-lab");
-  }, [brainMode, brainLab]);
+    return () => root.classList.remove("is-brain");
+  }, [brainMode]);
+
+  const refreshBrain = useCallback(async () => {
+    const [nextStatus, nextConfig] = await Promise.all([api.brainStatus(), api.brainSettings()]);
+    setBrainStatus(nextStatus);
+    setBrainConfig(nextConfig);
+  }, []);
+
+  useEffect(() => {
+    if (!brainMode || status !== "online") {
+      setBrainStatus(null);
+      setBrainConfig(null);
+      return;
+    }
+    const controller = new AbortController();
+    Promise.all([api.brainStatus(controller.signal), api.brainSettings(controller.signal)])
+      .then(([nextStatus, nextConfig]) => {
+        setBrainStatus(nextStatus);
+        setBrainConfig(nextConfig);
+      })
+      .catch(() => {
+        setBrainStatus(null);
+        setBrainConfig(null);
+      });
+    return () => controller.abort();
+  }, [brainMode, status]);
+
+  const applyBrainSettings = useCallback(
+    async (patch: BrainSettingsPatch) => {
+      const view = await api.updateBrainSettings(patch);
+      setBrainConfig(view);
+      await refreshBrain();
+    },
+    [refreshBrain]
+  );
 
   const setMode = useCallback(
     (on: boolean) => {
@@ -178,6 +217,24 @@ export default function ExplorerPage() {
     void connect();
     setNativeAvailable(Boolean(webview()?.postMessage));
   }, [connect]);
+
+  useEffect(() => {
+    if (status !== "online") return;
+    const controller = new AbortController();
+    api.appUpdate(controller.signal).then(setAppUpdate).catch(() => setAppUpdate(null));
+    return () => controller.abort();
+  }, [status]);
+
+  const installUpdate = useCallback(async () => {
+    setUpdating(true);
+    try {
+      await api.downloadAppUpdate();
+      webview()?.postMessage?.("quit-for-update");
+    } catch (err: unknown) {
+      toast({ tone: "error", message: messageOf(err) });
+      setUpdating(false);
+    }
+  }, [toast]);
 
   useEffect(() => {
     if (!scanning || status !== "online") return;
@@ -588,11 +645,8 @@ export default function ExplorerPage() {
     isFolder && !libraries.some((l) => isInside(view.path, l.path) || isInside(l.path, view.path));
 
   const hasFilters = extensions.length > 0 || range !== null || search !== "" || kind !== "all";
-  const brainSearch = brainMode && search !== "";
-
-  const stage: "loading" | "error" | "empty" | "grid" = brainSearch
-    ? "empty"
-    : source.error && source.total === 0
+  const stage: "loading" | "error" | "empty" | "grid" =
+    source.error && source.total === 0
       ? "error"
       : !source.loaded
         ? "loading"
@@ -642,8 +696,8 @@ export default function ExplorerPage() {
           >
             <Sidebar
               brand={brand}
-              collapsed={brainDeck || collapsed}
-              railLocked={brainDeck}
+              collapsed={collapsed}
+              railLocked={false}
               view={view}
               libraries={libraries}
               collections={collections}
@@ -657,6 +711,9 @@ export default function ExplorerPage() {
               onCreateCollection={createCollection}
               onRenameCollection={renameCollection}
               onDeleteCollection={askDeleteCollection}
+              update={appUpdate}
+              updating={updating}
+              onUpdate={() => void installUpdate()}
             />
 
             <div className="workspace">
@@ -675,9 +732,10 @@ export default function ExplorerPage() {
                 recursive={recursive}
                 canAddFolderAsLibrary={canAddFolderAsLibrary}
                 brainMode={brainMode}
-                brainLab={brainLab}
+                brainStatus={brainStatus}
+                brainConfig={brainConfig}
+                onBrainSettingsPatch={applyBrainSettings}
                 onBrainMode={setMode}
-                onBrainLab={setBrainLab}
                 onSearchInput={setSearchInput}
                 onFilters={patchFilters}
                 onDensity={setDensity}
@@ -743,12 +801,11 @@ export default function ExplorerPage() {
                       </motion.div>
                     ) : (
                       <EmptyState
-                        key={`${stage}-${viewKey}${brainSearch ? "-brain" : ""}`}
+                        key={`${stage}-${viewKey}`}
                         stage={stage}
                         error={source.error}
                         view={view}
                         scanning={viewScanning}
-                        brainSearch={brainSearch}
                         hasFilters={hasFilters}
                         missing={library?.status === "missing"}
                         subfolders={listing?.folders.length ?? 0}
@@ -766,7 +823,7 @@ export default function ExplorerPage() {
                 </main>
 
                 <AnimatePresence initial={false}>
-                  {timelineOpen && !brainDeck ? (
+                  {timelineOpen ? (
                     <TimelineRail key="timeline" timeline={summary?.timeline ?? null} range={range} onRange={setRange} />
                   ) : null}
                 </AnimatePresence>
@@ -881,7 +938,6 @@ type EmptyStateProps = {
   error: string | null;
   view: View;
   scanning: boolean;
-  brainSearch: boolean;
   hasFilters: boolean;
   missing: boolean;
   subfolders: number;
@@ -903,10 +959,6 @@ function EmptyState(props: EmptyStateProps) {
     heading = props.view.type === "folder" ? "No se pudo abrir la carpeta" : "No se pudo leer el catálogo";
     body = props.error ?? "";
     action = props.view.type === "folder" ? { label: "Elegir otra carpeta", run: props.onBrowse } : { label: "Reintentar", run: props.onRetry };
-  } else if (props.brainSearch) {
-    icon = <Brain size={30} />;
-    heading = "Sin resultados";
-    body = "La búsqueda visual no está conectada.";
   } else if (props.scanning) {
     icon = <Sparkles size={30} />;
     heading = "Indexando…";
