@@ -42,6 +42,12 @@ export function lastSegment(path: string): string {
   return path.split(/[/\\]/).filter(Boolean).pop() || path;
 }
 
+export function breadcrumbLabel(crumb: { name: string; path: string }): string {
+  if (crumb.name === "Red" || crumb.path === "\\\\") return "Red";
+  if (crumb.name === "/" || crumb.name === "\\") return "Equipo";
+  return crumb.name;
+}
+
 /** Month ranges are built in the browser's zone, the same zone the catalog buckets by. */
 export function monthRange(year: number, month: number) {
   return {

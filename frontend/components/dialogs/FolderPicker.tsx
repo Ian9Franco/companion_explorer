@@ -7,6 +7,7 @@ import {
   ChevronRight,
   Download,
   Folder,
+  Globe,
   HardDrive,
   History,
   Home,
@@ -16,7 +17,7 @@ import {
   Video
 } from "lucide-react";
 import { FolderListing, RootEntry, api } from "../../lib/api";
-import { formatCount, lastSegment } from "../../lib/format";
+import { breadcrumbLabel, formatCount, lastSegment } from "../../lib/format";
 import { ease } from "../../lib/motion";
 import { messageOf } from "../../lib/sources";
 import { Modal } from "../ui/Modal";
@@ -40,7 +41,8 @@ const ROOT_ICON: Record<string, typeof Folder> = {
   downloads: Download,
   desktop: Monitor,
   home: Home,
-  drive: HardDrive
+  drive: HardDrive,
+  network: Globe
 };
 
 const LISTING_FILTERS = { kind: "all", search: "", sort: "name", desc: false } as const;
@@ -116,7 +118,7 @@ export function FolderPicker({ mode, initialPath, recents, nativeAvailable, onNa
         <input
           value={input}
           onChange={(e) => setInput(e.target.value)}
-          placeholder="Pegá una ruta: C:\Users\vos\Pictures o /home/vos/fotos"
+          placeholder="Ruta local o de red: C:\Pictures, \\NAS\fotos o /home/vos/fotos"
           aria-label="Ruta"
           spellCheck={false}
         />
@@ -177,7 +179,7 @@ export function FolderPicker({ mode, initialPath, recents, nativeAvailable, onNa
               <span key={crumb.path} className="crumb">
                 {i > 0 ? <ChevronRight size={13} className="crumb-sep" /> : null}
                 <button type="button" onClick={() => setPath(crumb.path)}>
-                  {crumb.name === "/" || crumb.name === "\\" ? "Equipo" : crumb.name}
+                  {breadcrumbLabel(crumb)}
                 </button>
               </span>
             ))}

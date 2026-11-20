@@ -20,7 +20,7 @@ import {
   X
 } from "lucide-react";
 import { CatalogSummary, Filters, FolderListing, MediaKind, SortKey } from "../../lib/api";
-import { formatBytes, formatCount, monthRange, monthShortName } from "../../lib/format";
+import { breadcrumbLabel, formatBytes, formatCount, monthRange, monthShortName } from "../../lib/format";
 import { ease, panelSpring, spring, unfold } from "../../lib/motion";
 import { Density, FolderLayout } from "../grid/MediaGrid";
 import { MenuItem, Popover } from "../ui/Popover";
@@ -504,10 +504,6 @@ export function Toolbar(props: ToolbarProps) {
   );
 }
 
-function crumbLabel(crumb: { name: string; path: string }) {
-  return crumb.name === "/" || crumb.name === "\\" ? "Equipo" : crumb.name;
-}
-
 function Breadcrumbs({ folder, onOpen }: { folder: FolderListing; onOpen: (path: string) => void }) {
   const crumbs = folder.breadcrumbs;
   const visible = crumbs.length > 4 ? [crumbs[0], null, ...crumbs.slice(-3)] : crumbs;
@@ -522,10 +518,10 @@ function Breadcrumbs({ folder, onOpen }: { folder: FolderListing; onOpen: (path:
           <span key={crumb.path} className="crumb">
             {i > 0 ? <ChevronRight size={14} className="crumb-sep" /> : null}
             {i === visible.length - 1 ? (
-              <h1>{crumbLabel(crumb)}</h1>
+              <h1>{breadcrumbLabel(crumb)}</h1>
             ) : (
               <button type="button" onClick={() => onOpen(crumb.path)}>
-                {crumbLabel(crumb)}
+                {breadcrumbLabel(crumb)}
               </button>
             )}
           </span>
