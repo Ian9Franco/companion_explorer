@@ -1,24 +1,60 @@
-name: release
+name: Release Companion Explorer
 
 on:
   push:
     tags:
       - "v*"
+  workflow_dispatch:
+    inputs:
+      tag_name:
+        required: true
+        description: "Version tag to build and publish (for example v0.1.3)"
 
 permissions:
   contents: write
 
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
-  windows:
+  build-and-release:
+    name: Build Windows installer & publish release
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v4
+      - name: Resolve release tag
+        id: release
+        shell: pwsh
+        env:
+          RELEASE_EVENT: ${{ github.event_name }}
+          RELEASE_REF_TYPE: ${{ github.ref_type }}
+          RELEASE_REF_NAME: ${{ github.ref_name }}
+          RELEASE_INPUT_TAG: ${{ inputs.tag_name }}
+        run: |
+          $tag = if ($env:RELEASE_EVENT -eq 'workflow_dispatch') {
+            $env:RELEASE_INPUT_TAG
+          } elseif ($env:RELEASE_REF_TYPE -eq 'tag') {
+            $env:RELEASE_REF_NAME
+          } else {
+            ''
+          }
+          if ($tag -notmatch '^v\d+\.\d+\.\d+') {
+            throw 'An explicit version tag (vX.Y.Z) is required to publish a release'
+          }
+          "tag=$tag" >> $env:GITHUB_OUTPUT
 
-      - uses: actions/setup-dotnet@v4
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event_name == 'workflow_dispatch' && 'main' || format('refs/tags/{0}', steps.release.outputs.tag) }}
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
         with:
           dotnet-version: "9.0.x"
 
-      - uses: actions/setup-node@v4
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
         with:
           node-version: "22"
           cache: npm
@@ -26,7 +62,7 @@ jobs:
 
       - name: Build release bundle
         shell: pwsh
-        run: ./scripts/build-release.ps1 -OutputDir "dist/${{ github.ref_name }}-win-x64" -Version "${{ github.ref_name }}"
+        run: ./scripts/build-release.ps1 -OutputDir "dist/${{ steps.release.outputs.tag }}-win-x64" -Version "${{ steps.release.outputs.tag }}"
 
       - name: Install Inno Setup
         shell: pwsh
@@ -35,10 +71,13 @@ jobs:
       - name: Compile installer
         shell: pwsh
         run: |
-          $ver = "${{ github.ref_name }}".TrimStart("v","V")
-          & "$env:ProgramFiles(x86)\Inno Setup 6\ISCC.exe" "/DAppVersion=$ver" "/DSourceDir=$PWD\dist\${{ github.ref_name }}-win-x64" "$PWD\installer\CompanionExplorer.iss"
+          $ver = "${{ steps.release.outputs.tag }}".TrimStart("v","V")
+          & "$env:ProgramFiles(x86)\Inno Setup 6\ISCC.exe" "/DAppVersion=$ver" "/DSourceDir=$PWD\dist\${{ steps.release.outputs.tag }}-win-x64" "$PWD\installer\CompanionExplorer.iss"
 
-      - uses: softprops/action-gh-release@v2
+      - name: Publish GitHub Release
+        uses: softprops/action-gh-release@v2
         with:
+          tag_name: ${{ steps.release.outputs.tag }}
           files: dist/CompanionExplorer-Setup.exe
           generate_release_notes: true
+          fail_on_unmatched_files: true
