@@ -27,7 +27,7 @@ Contenido de la carpeta:
 | `api/CompanionExplorer.Api.exe` | Núcleo HTTP |
 | `out/` | Interfaz exportada de Next.js |
 | `brands/` | Marca activa (`companion` por defecto) |
-| `models/` | Manifest y archivos ONNX de búsqueda visual (junto al programa, no en AppData) |
+| `models/` | Manifest ONNX (`image.onnx`, `text.onnx`, `vocab.json`, `merges.txt`) junto al programa |
 
 Variables opcionales (mismas que en desarrollo):
 

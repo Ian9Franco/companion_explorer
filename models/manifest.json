@@ -15,6 +15,16 @@
           "name": "text.onnx",
           "url": "",
           "sha256": ""
+        },
+        {
+          "name": "vocab.json",
+          "url": "",
+          "sha256": ""
+        },
+        {
+          "name": "merges.txt",
+          "url": "",
+          "sha256": ""
         }
       ]
     }

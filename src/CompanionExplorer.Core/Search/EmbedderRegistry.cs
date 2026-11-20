@@ -73,13 +73,20 @@ public sealed class EmbedderRegistry : IEmbedder
 
             if (bundle is not null)
             {
-                var filesReady = ModelManifestIO.BundleIsComplete(bundle);
-                next = new LocalBundleEmbedder(bundle, filesReady);
+                var onnx = OnnxBundleEmbedder.TryCreate(bundle);
+                if (onnx is not null)
+                    next = onnx;
+                else
+                    next = new LocalBundleEmbedder(bundle, ModelManifestIO.BundleIsComplete(bundle));
             }
         }
 
         lock (_gate)
+        {
+            if (_active is IDisposable disposable && !ReferenceEquals(_active, next))
+                disposable.Dispose();
             _active = next;
+        }
     }
 
     public ValueTask<Embedding?> EmbedTextAsync(string text, CancellationToken cancellationToken = default)
