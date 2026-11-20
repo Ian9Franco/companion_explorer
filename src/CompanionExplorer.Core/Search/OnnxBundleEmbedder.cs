@@ -112,13 +112,12 @@ public sealed class OnnxBundleEmbedder : IEmbedder, IDisposable
 
         try
         {
-            var encoding = _tokenizer.Encode(text.Trim());
-            var ids = encoding.Ids.Select(i => (long)i).ToArray();
+            var ids = _tokenizer.EncodeToIds(text.Trim()).Select(i => (long)i).ToArray();
             if (ids.Length == 0)
                 return ValueTask.FromResult<Embedding?>(null);
 
             var seqLen = ids.Length;
-            var inputIds = new DenseTensor<long>([1, seqLen]);
+            var inputIds = new DenseTensor<long>(new[] { 1, seqLen });
             for (var i = 0; i < seqLen; i++)
                 inputIds[0, i] = ids[i];
 
@@ -129,7 +128,7 @@ public sealed class OnnxBundleEmbedder : IEmbedder, IDisposable
 
             if (_textAttentionName is not null)
             {
-                var mask = new DenseTensor<long>([1, seqLen]);
+                var mask = new DenseTensor<long>(new[] { 1, seqLen });
                 for (var i = 0; i < seqLen; i++)
                     mask[0, i] = 1;
                 inputs.Add(NamedOnnxValue.CreateFromTensor(_textAttentionName, mask));
@@ -154,7 +153,7 @@ public sealed class OnnxBundleEmbedder : IEmbedder, IDisposable
 
         try
         {
-            using var pixelTensor = OnnxClipImagePreprocessor.BuildPixelTensor(filePath);
+            var pixelTensor = OnnxClipImagePreprocessor.BuildPixelTensor(filePath);
             var inputs = new[] { NamedOnnxValue.CreateFromTensor(_imageInputName, pixelTensor) };
             using var results = _imageSession.Run(inputs);
             var vector = ExtractVector(results, _model.Dimensions);

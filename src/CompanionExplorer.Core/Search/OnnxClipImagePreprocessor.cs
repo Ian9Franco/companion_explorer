@@ -33,21 +33,18 @@ internal static class OnnxClipImagePreprocessor
         var scaledW = (int)Math.Round(source.Width * scale);
         var scaledH = (int)Math.Round(source.Height * scale);
 
-        var scaled = new SKBitmap(scaledW, scaledH, SKColorType.Rgba8888, SKAlphaType.Opaque);
-        using (var canvas = new SKCanvas(scaled))
-        {
-            canvas.Clear(SKColors.Black);
-            canvas.DrawBitmap(source, new SKRect(0, 0, scaledW, scaledH), SKSamplingOptions.Default);
-        }
+        using var scaled = source.Resize(new SKImageInfo(scaledW, scaledH), SKSamplingOptions.Default)
+            ?? throw new InvalidOperationException("No se pudo escalar la imagen.");
 
         var left = Math.Max(0, (scaledW - size) / 2);
         var top = Math.Max(0, (scaledH - size) / 2);
         var crop = new SKBitmap(size, size, SKColorType.Rgba8888, SKAlphaType.Opaque);
-        using var canvas = new SKCanvas(crop);
-        canvas.DrawBitmap(scaled, new SKRect(-left, -top, scaledW - left, scaledH - top));
-
-        if (!ReferenceEquals(scaled, source))
-            scaled.Dispose();
+        using (var cropCanvas = new SKCanvas(crop))
+        using (var scaledImage = SKImage.FromBitmap(scaled))
+        {
+            cropCanvas.Clear(SKColors.Black);
+            cropCanvas.DrawImage(scaledImage, new SKRect(-left, -top, scaledW - left, scaledH - top));
+        }
 
         return crop;
     }
