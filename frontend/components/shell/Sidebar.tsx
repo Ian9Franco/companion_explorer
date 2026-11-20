@@ -18,7 +18,7 @@ import {
   RefreshCw,
   Trash2
 } from "lucide-react";
-import { Brand, CollectionInfo, LibraryInfo, View, brandLogoUrl, thumbUrl } from "../../lib/api";
+import { AppUpdateInfo, Brand, CollectionInfo, LibraryInfo, View, brandLogoUrl, thumbUrl } from "../../lib/api";
 import { formatBytes, formatCount, lastSegment } from "../../lib/format";
 import { collapseLane, ease, panelSpring, spring, stagger } from "../../lib/motion";
 import { MenuItem, Popover } from "../ui/Popover";
@@ -37,6 +37,9 @@ type SidebarProps = {
   onBrowse: () => void;
   onRescan: (library: LibraryInfo) => void;
   onRemoveLibrary: (library: LibraryInfo) => void;
+  update: AppUpdateInfo | null;
+  updating: boolean;
+  onUpdate: () => void;
   onCreateCollection: (name: string) => Promise<boolean>;
   onRenameCollection: (collection: CollectionInfo, name: string) => Promise<boolean>;
   onDeleteCollection: (collection: CollectionInfo) => void;
@@ -261,6 +264,11 @@ export function Sidebar(props: SidebarProps) {
           </AnimatePresence>
         </Section>
       </motion.nav>
+      {props.update?.updateAvailable && !collapsed ? (
+        <button type="button" className="sidebar-update" onClick={props.onUpdate} disabled={props.updating}>
+          {props.updating ? "Descargando…" : `Actualizar a ${props.update.latest}`}
+        </button>
+      ) : null}
     </motion.aside>
   );
 }

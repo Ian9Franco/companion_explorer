@@ -10,13 +10,15 @@ Distribución **portable** para Windows: un ZIP con el núcleo API, la ventana W
 
 Los datos (`catalog.db`, miniaturas) van a `%LocalAppData%\CompanionExplorer`. Las preferencias de cerebro van en `brain.settings.json`; la **API key del proveedor** (si la configurás) en `brain.provider.key`, cifrada con **DPAPI** del usuario de Windows — no hace falta volver a pegarla en cada apertura. La variable `COMPANION_BRAIN_PROVIDER_API_KEY` sigue pudiendo usarse como override puntual. Los **modelos ONNX** van en la carpeta **`models/`** al lado del ZIP (misma raíz que `Start-Companion.bat`). Companion los verifica al arrancar y, cuando el manifest tenga URLs, los **descarga solo** ahí; el usuario no busca archivos por el disco. El pipeline de release puede **prefetch** los `.onnx` en el build para entregar el ZIP ya completo.
 
-## Usar el ZIP
+## Instalar
 
-1. Descargá `v*-win-x64.zip` desde [GitHub Releases](https://github.com/Ian9Franco/companion_explorer/releases).
-2. Descomprimí la carpeta (por ejemplo `v0.1.0-win-x64`).
-3. Abrí **`Start-Companion.bat`** (o `Start-Companion.ps1`).
+1. Descargá **`CompanionExplorer-Setup.exe`** desde [GitHub Releases](https://github.com/Ian9Franco/companion_explorer/releases).
+2. Ejecutalo (no pide administrador). Instala en `%LocalAppData%\Programs\Companion Explorer`.
+3. Abrí **Companion Explorer** desde el escritorio o el menú Inicio.
 
-El launcher levanta el API en segundo plano, espera `http://127.0.0.1:5080/health` y abre la ventana. Al cerrar la ventana, detiene el API. Si la consola se queda quieta o falla, mirá **`companion-api.log`** y **`companion-api.err.log`** en la misma carpeta (suele ser puerto incorrecto en builds anteriores a v0.1.1 o falta de `brands/`).
+No hace falta el `.bat`. `CompanionExplorer.Host.exe` es una ventana: muestra **«Abriendo Companion»**, levanta el núcleo sin consola y abre la app. Al cerrar, detiene el núcleo.
+
+Si hay una release más nueva, el panel izquierdo muestra **Actualizar**. Descarga el instalador, lo ejecuta y cierra la app para poder reemplazar los archivos.
 
 Contenido de la carpeta:
 

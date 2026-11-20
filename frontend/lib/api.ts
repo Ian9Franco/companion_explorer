@@ -6,6 +6,16 @@
  * resumen. El resumen le saca el orden, que no cambia los conteos.
  */
 
+export type AppUpdateInfo = {
+  current: string;
+  latest: string | null;
+  updateAvailable: boolean;
+  downloadUrl: string | null;
+  assetName: string | null;
+  releaseNotesUrl: string | null;
+  message: string;
+};
+
 export type Brand = {
   id: string;
   productName: string;
@@ -239,6 +249,10 @@ const json = (body: unknown): RequestInit => ({ body: JSON.stringify(body) });
 
 export const api = {
   brand: (signal?: AbortSignal) => request<Brand>("/brand", { signal }),
+
+  appUpdate: (signal?: AbortSignal) => request<AppUpdateInfo>("/app/update", { signal }),
+
+  downloadAppUpdate: () => request<{ started: boolean; installer: string }>("/app/update/download", { method: "POST" }),
 
   roots: async (signal?: AbortSignal) =>
     (await request<{ roots: RootEntry[] }>("/roots", { signal })).roots ?? [],

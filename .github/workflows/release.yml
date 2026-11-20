@@ -26,13 +26,19 @@ jobs:
 
       - name: Build release bundle
         shell: pwsh
-        run: ./scripts/build-release.ps1 -OutputDir "dist/${{ github.ref_name }}-win-x64"
+        run: ./scripts/build-release.ps1 -OutputDir "dist/${{ github.ref_name }}-win-x64" -Version "${{ github.ref_name }}"
 
-      - name: Archive
+      - name: Install Inno Setup
         shell: pwsh
-        run: Compress-Archive -Path "dist/${{ github.ref_name }}-win-x64" -DestinationPath "${{ github.ref_name }}-win-x64.zip"
+        run: choco install innosetup --no-progress -y
+
+      - name: Compile installer
+        shell: pwsh
+        run: |
+          $ver = "${{ github.ref_name }}".TrimStart("v","V")
+          & "$env:ProgramFiles(x86)\Inno Setup 6\ISCC.exe" "/DAppVersion=$ver" "/DSourceDir=$PWD\dist\${{ github.ref_name }}-win-x64" "$PWD\installer\CompanionExplorer.iss"
 
       - uses: softprops/action-gh-release@v2
         with:
-          files: ${{ github.ref_name }}-win-x64.zip
+          files: dist/CompanionExplorer-Setup.exe
           generate_release_notes: true

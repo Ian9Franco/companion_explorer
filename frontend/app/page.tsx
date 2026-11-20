@@ -21,6 +21,7 @@ import {
   BrainSettingsPatch,
   BrainSettingsView,
   BrainStatus,
+  AppUpdateInfo,
   Brand,
   CollectionInfo,
   DateRange,
@@ -117,6 +118,8 @@ export default function ExplorerPage() {
   const [collectionTarget, setCollectionTarget] = useState<string[] | null>(null);
   const [confirm, setConfirm] = useState<ConfirmRequest | null>(null);
   const [nativeAvailable, setNativeAvailable] = useState(false);
+  const [appUpdate, setAppUpdate] = useState<AppUpdateInfo | null>(null);
+  const [updating, setUpdating] = useState(false);
   const { toasts, show: toast, dismiss } = useToasts();
   const searchRef = useRef<HTMLInputElement | null>(null);
 
@@ -214,6 +217,24 @@ export default function ExplorerPage() {
     void connect();
     setNativeAvailable(Boolean(webview()?.postMessage));
   }, [connect]);
+
+  useEffect(() => {
+    if (status !== "online") return;
+    const controller = new AbortController();
+    api.appUpdate(controller.signal).then(setAppUpdate).catch(() => setAppUpdate(null));
+    return () => controller.abort();
+  }, [status]);
+
+  const installUpdate = useCallback(async () => {
+    setUpdating(true);
+    try {
+      await api.downloadAppUpdate();
+      webview()?.postMessage?.("quit-for-update");
+    } catch (err: unknown) {
+      toast({ tone: "error", message: messageOf(err) });
+      setUpdating(false);
+    }
+  }, [toast]);
 
   useEffect(() => {
     if (!scanning || status !== "online") return;
@@ -690,6 +711,9 @@ export default function ExplorerPage() {
               onCreateCollection={createCollection}
               onRenameCollection={renameCollection}
               onDeleteCollection={askDeleteCollection}
+              update={appUpdate}
+              updating={updating}
+              onUpdate={() => void installUpdate()}
             />
 
             <div className="workspace">

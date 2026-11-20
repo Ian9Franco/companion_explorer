@@ -39,6 +39,7 @@ builder.Services.AddSingleton<EmbedderRegistry>();
 builder.Services.AddSingleton<IEmbedder>(sp => sp.GetRequiredService<EmbedderRegistry>());
 builder.Services.AddSingleton<BrainSearchService>();
 builder.Services.AddSingleton<BrainConfigurationService>();
+builder.Services.AddSingleton<AppUpdateService>();
 builder.Services.AddHostedService<ModelBootstrapWorker>();
 builder.Services.AddSingleton<IThumbnailSource>(_ =>
     new ThumbnailService(Path.Combine(dataDirectory, "cache", "thumbs")));
@@ -51,6 +52,7 @@ var app = builder.Build();
 app.UseCors();
 app.MapCatalogEndpoints();
 app.MapBrainEndpoints();
+app.MapAppEndpoints();
 
 app.MapGet("/health", (BrandStore store) => Results.Ok(new
 {
