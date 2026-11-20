@@ -1,6 +1,6 @@
 namespace CompanionExplorer.Core.Search;
 
-internal static class OnnxEmbeddingMath
+public static class OnnxEmbeddingMath
 {
     public static float[] ToVectorAndNormalize(ReadOnlySpan<float> values, int dimensions)
     {

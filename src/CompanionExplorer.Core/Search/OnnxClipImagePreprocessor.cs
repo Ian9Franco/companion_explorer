@@ -43,7 +43,10 @@ internal static class OnnxClipImagePreprocessor
         using (var scaledImage = SKImage.FromBitmap(scaled))
         {
             cropCanvas.Clear(SKColors.Black);
-            cropCanvas.DrawImage(scaledImage, new SKRect(-left, -top, scaledW - left, scaledH - top));
+            cropCanvas.DrawImage(
+                scaledImage,
+                new SKRect(-left, -top, scaledW - left, scaledH - top),
+                new SKSamplingOptions(SKFilterMode.Linear, SKMipmapMode.None));
         }
 
         return crop;
