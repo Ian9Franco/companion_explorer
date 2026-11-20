@@ -93,6 +93,28 @@ public class FolderExplorerTests
     }
 
     [Fact]
+    public void Rutas_unc_arman_red_equipo_y_recurso()
+    {
+        Assert.True(UncPaths.IsRoot(@"\\"));
+        Assert.True(UncPaths.IsRoot("//"));
+        Assert.False(UncPaths.IsRoot(@"\\Barton-8000"));
+
+        Assert.Equal(@"\\Barton-8000", UncPaths.Canonical(@"\\Barton-8000\"));
+        Assert.Equal(
+            @"\\Barton-8000\fanger\DESIGN\ARCHIVOS CLIENTES",
+            UncPaths.Canonical(@"\\Barton-8000\fanger\DESIGN\ARCHIVOS CLIENTES\"));
+
+        Assert.Equal(UncPaths.Root, UncPaths.Parent(@"\\Barton-8000"));
+        Assert.Equal(@"\\Barton-8000", UncPaths.Parent(@"\\Barton-8000\fanger"));
+        Assert.Equal(@"\\Barton-8000\fanger\DESIGN", UncPaths.Parent(@"\\Barton-8000\fanger\DESIGN\ARCHIVOS CLIENTES"));
+
+        var crumbs = UncPaths.Breadcrumbs(@"\\Barton-8000\fanger\DESIGN");
+        Assert.Equal(["Red", "Barton-8000", "fanger", "DESIGN"], crumbs.Select(c => c.Name).ToArray());
+        Assert.Equal(@"\\", crumbs[0].Path);
+        Assert.Equal(@"\\Barton-8000\fanger", crumbs[2].Path);
+    }
+
+    [Fact]
     public void Raiz_de_red_y_normaliza_rutas_unc_en_Windows()
     {
         if (!OperatingSystem.IsWindows())

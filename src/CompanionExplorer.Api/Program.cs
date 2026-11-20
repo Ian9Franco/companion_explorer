@@ -112,6 +112,14 @@ app.MapGet("/folders", (
     {
         return Results.NotFound(new { error = ex.Message });
     }
+    catch (UnauthorizedAccessException ex)
+    {
+        return Results.Json(new { error = $"Sin acceso a esa carpeta. {ex.Message}" }, statusCode: StatusCodes.Status403Forbidden);
+    }
+    catch (IOException ex)
+    {
+        return Results.BadRequest(new { error = $"No se pudo leer la carpeta. {ex.Message}" });
+    }
     catch (ArgumentException ex)
     {
         return Results.BadRequest(new { error = ex.Message });

@@ -47,6 +47,17 @@ const ROOT_ICON: Record<string, typeof Folder> = {
 
 const LISTING_FILTERS = { kind: "all", search: "", sort: "name", desc: false } as const;
 
+function emptyFolderMessage(path: string): string {
+  const normalized = path.replace(/\//g, "\\");
+  if (normalized === "\\\\" || normalized.replace(/\\/g, "") === "") {
+    return "No aparecen equipos. Pegá la ruta completa, por ejemplo \\\\Barton-8000\\recurso\\carpeta, y tocá Ir.";
+  }
+  if (/^\\\\[^\\]+$/.test(normalized)) {
+    return "No aparecen carpetas compartidas. Probá con la ruta completa del recurso.";
+  }
+  return "No hay subcarpetas acá.";
+}
+
 export function FolderPicker({ mode, initialPath, recents, nativeAvailable, onNative, onChoose, onClose }: FolderPickerProps) {
   const [roots, setRoots] = useState<RootEntry[]>([]);
   const [path, setPath] = useState(initialPath ?? "");
@@ -82,6 +93,8 @@ export function FolderPicker({ mode, initialPath, recents, nativeAvailable, onNa
       })
       .catch((err: unknown) => {
         if (controller.signal.aborted) return;
+        setListing(null);
+        setInput(path);
         setError(messageOf(err));
         setLoading(false);
       });
@@ -198,7 +211,7 @@ export function FolderPicker({ mode, initialPath, recents, nativeAvailable, onNa
                 {error ? (
                   <p className="picker-message is-error">{error}</p>
                 ) : listing && listing.folders.length === 0 ? (
-                  <p className="picker-message">No hay subcarpetas acá.</p>
+                  <p className="picker-message">{emptyFolderMessage(listing.path)}</p>
                 ) : (
                   listing?.folders.map((folder, i) => (
                     <motion.button
