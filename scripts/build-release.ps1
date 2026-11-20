@@ -45,9 +45,11 @@ if ([string]::IsNullOrWhiteSpace($versionText)) { $versionText = "0.0.0" }
 
 Write-Host "Publicando API en $apiStage"
 dotnet publish $apiProject -c Release -r $Runtime --self-contained true -o $apiStage -p:Version=$versionText
+if ($LASTEXITCODE -ne 0) { throw "dotnet publish (API) falló con código $LASTEXITCODE" }
 
 Write-Host "Publicando ventana en $stage"
 dotnet publish $hostProject -c Release -r $Runtime --self-contained true -o $stage -p:Version=$versionText
+if ($LASTEXITCODE -ne 0) { throw "dotnet publish (Host) falló con código $LASTEXITCODE" }
 
 Set-Content -Path (Join-Path $stage "version.txt") -Value $versionText -NoNewline
 Set-Content -Path (Join-Path $apiStage "version.txt") -Value $versionText -NoNewline
