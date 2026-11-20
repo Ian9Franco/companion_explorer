@@ -72,7 +72,9 @@ jobs:
         shell: pwsh
         run: |
           $ver = "${{ steps.release.outputs.tag }}".TrimStart("v","V")
-          & "$env:ProgramFiles(x86)\Inno Setup 6\ISCC.exe" "/DAppVersion=$ver" "/DSourceDir=$PWD\dist\${{ steps.release.outputs.tag }}-win-x64" "$PWD\installer\CompanionExplorer.iss"
+          $iscc = Join-Path ${env:ProgramFiles(x86)} 'Inno Setup 6\ISCC.exe'
+          if (-not (Test-Path $iscc)) { throw "ISCC not found at $iscc (install Inno Setup)" }
+          & $iscc "/DAppVersion=$ver" "/DSourceDir=$PWD\dist\${{ steps.release.outputs.tag }}-win-x64" "$PWD\installer\CompanionExplorer.iss"
 
       - name: Publish GitHub Release
         uses: softprops/action-gh-release@v2
